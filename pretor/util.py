@@ -4,6 +4,7 @@ import os
 import traceback
 import logging
 import pretor.exceptions
+import pprint
 
 def zip_folder(folder_path, output_path, comment=""):
     """Zip the contents of an entire folder (with that folder included
@@ -11,7 +12,7 @@ def zip_folder(folder_path, output_path, comment=""):
     as well.
 
     Retrieved from
-    https://www.calazan.com/how-to-zip-an-entire-directory-with-python/ 
+    https://www.calazan.com/how-to-zip-an-entire-directory-with-python/
     2018-08-08.
 
     """
@@ -20,8 +21,9 @@ def zip_folder(folder_path, output_path, comment=""):
     output_path = str(os.path.abspath(str(output_path)))
     starting_dir = os.getcwd()
 
-    comment = str(comment)
-    comment = comment.encode("utf-8")
+    if type(comment) is not bytes:
+        comment = str(comment)
+        comment = comment.encode("utf-8")
 
     parent_folder = os.path.dirname(folder_path)
     # Retrieve the paths of the folder contents.
@@ -61,6 +63,22 @@ def zip_folder(folder_path, output_path, comment=""):
 
     os.chdir(starting_dir)
 
+def zip_read_comment(file_path):
+    """zip_read_comment
+
+    Read the contents of a zipfile's comment field.
+
+    :param file_path:
+    """
+
+    logging.debug("retrieving comment from {}".format(file_path))
+    comment = None
+    with zipfile.ZipFile(file_path, 'r') as f:
+        comment = f.comment
+    logging.debug("loaded raw comments '{}'".format(comment))
+    return comment
+
+
 def setup_logging(level=logging.INFO):
     logging.basicConfig(level=level,
             format='%(levelname)s: %(message)s',
@@ -70,3 +88,6 @@ def setup_logging(level=logging.INFO):
 def log_exception(e):
     logging.error("Exception: {}".format(e))
     logging.debug("".join(traceback.format_tb(e.__traceback__)))
+
+def log_pretty(logfunc, obj):
+    logfunc(pprint.pformat(obj))

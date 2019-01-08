@@ -22,3 +22,15 @@ class InvalidFile(Exception):
         message = "Invalid file: {}".format(msg)
 
         super().__init__(message)
+
+class StateError(Exception):
+    """
+    Indicates that the system state is in some way inconsistent with what it
+    should be.
+    """
+
+    def __init__(this, msg="unspecified"):
+        msg= str(msg)
+        message = "State error: {}".format(msg)
+
+        super().__init__(message)

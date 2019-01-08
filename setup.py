@@ -34,10 +34,11 @@ setup(name="pretor",
       packages=find_packages(),
       entry_points={'console_scripts':
           ['pretor-run=pretor.pretor_run:main',
-           'pretor-submission=pretor.pretor_submission:main',
+           'pretor-pack=pretor.pretor_submission:pack_cli',
+           'pretor-psf=pretor.pretor_submission:psf_cli',
            'pretor-grade=pretor.grader:repl']},
       package_dir={'pretor': 'pretor'},
       platforms=['POSIX'],
-      install_requires=['toml']
+      install_requires=['toml', 'tabulate']
       )
 
