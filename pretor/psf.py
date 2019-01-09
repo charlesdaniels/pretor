@@ -1,4 +1,5 @@
 import argparse
+import zlib
 import sys
 import io
 import datetime
@@ -10,6 +11,7 @@ import tabulate
 import zipfile
 import logging
 import getpass
+import socket
 
 from . import constants
 from . import exceptions
@@ -106,6 +108,9 @@ def psf_cli():
             help="Display the manifest for the specified input archive and " +
             "revision ID.")
 
+    action.add_argument("--forensic", "-f", default=False, action="store_true",
+            help="Display forensic data encoded in the input archive.")
+
     args = parser.parse_args()
 
     if args.debug:
@@ -175,6 +180,10 @@ def psf_cli():
         psf.metadata["course"] = args.course
         psf.metadata["timestamp"] = datetime.datetime.now()
 
+        psf.forensic["hostname"] = socket.gethostname()
+        psf.forensic["timestamp"] = datetime.datetime.now()
+        psf.forensic["user"] = getpass.getuser()
+
         # write output file
         if args.name is None:
             args.name = "{}-{}-{}-{}-{}.psf".format(
@@ -222,6 +231,12 @@ def psf_cli():
 
         psf.get_revision(args.revid).write_files(args.destination)
 
+    elif args.forensic:
+        print(tabulate.tabulate(
+                [(k, psf.forensic[k]) for k in psf.forensic],
+                tablefmt = "plain"))
+
+
 
 class PSF:
     """PSF
@@ -247,6 +262,7 @@ class PSF:
         this.revisions = {}
         this.ID        = None
         this.metadata  = {}
+        this.forensic  = {}
 
     def __str__(this):
         if this.ID is None:
@@ -304,8 +320,17 @@ class PSF:
         archive_path = pathlib.Path(archive_path)
 
         with zipfile.ZipFile(archive_path, 'r') as f:
-            # load the pretor data file for the PSF
 
+            # load forensic data from PSF
+            try:
+                this.forensic = toml.loads(
+                        zlib.decompress(f.comment).decode("utf-8"))
+            except Exception as e:
+                util.log_exception(e)
+                logging.warning("archive {} has missing or invalid forensic data"
+                        .format(archive_path))
+
+            # load the pretor data file for the PSF
             try:
                 f.getinfo("pretor_data.toml")
             except KeyError:
@@ -415,6 +440,10 @@ class PSF:
             pretor_data["metadata"] = this.metadata
             f.writestr("pretor_data.toml",
                     toml.dumps(pretor_data), compress_type=zipfile.ZIP_LZMA)
+
+            # write forensic data
+            f.comment = \
+                zlib.compress(toml.dumps(this.forensic).encode("utf-8"))
 
             # write each revision file
             for revID in this.revisions:
