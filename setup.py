@@ -34,6 +34,7 @@ setup(name="pretor",
       packages=find_packages(),
       entry_points={'console_scripts':
           ['pretor-psf=pretor.psf:psf_cli',
+           'pretor-plugin=pretor.plugin:plugin_cli',
            'pretor-grade=pretor.grader:repl']},
       package_dir={'pretor': 'pretor'},
       platforms=['POSIX'],
