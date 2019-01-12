@@ -2,11 +2,11 @@ import cmd
 import os
 import sys
 
-import pretor
+from . import constants
 
 class PretorShell(cmd.Cmd):
 
-    intro = "PRETOR version {} interactive grading shell.".format(pretor.__version__)
+    intro = "PRETOR version {} interactive grading shell. Note that this feature is not yet implemented".format(constants.version)
     prompt = "grader> "
     file = None
 
