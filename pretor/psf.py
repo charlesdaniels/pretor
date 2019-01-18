@@ -266,7 +266,7 @@ class PSF:
 
     def __str__(this):
         if this.ID is None:
-            return "<PSF INITIALIZED>"
+            return "<PSF UNINITIALIZED>"
         else:
             return "<PSF ID={}>".format(this.ID)
 
