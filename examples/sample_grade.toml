@@ -1,0 +1,8 @@
+feedback = "this is the feedback field"
+bonus_marks = 7
+penalty_score = 0.1
+penalty_multiplier = 0.05
+
+[categories]
+correctness = 65
+style = 23

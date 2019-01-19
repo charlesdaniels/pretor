@@ -14,7 +14,7 @@ def course_cli():
 
     parser = argparse.ArgumentParser("""CLI tool for displaying information
 about a pretor course. This tool is primarily of use to those creating or
-modifying pretor course definitions""")
+modifying pretor course definitions.""")
 
 
     parser.add_argument("--version", action="version",
