@@ -217,9 +217,7 @@ def psf_cli():
         sys.stdout.write(psf.generate_tree())
 
     elif args.metadata:
-        print(tabulate.tabulate(
-                [(k, psf.metadata[k]) for k in psf.metadata],
-                tablefmt = "plain"))
+        print(psf.format_metadata())
 
     elif args.manifest:
         for path in psf.get_revision(args.revid).contents:
@@ -232,10 +230,7 @@ def psf_cli():
         psf.get_revision(args.revid).write_files(args.destination)
 
     elif args.forensic:
-        print(tabulate.tabulate(
-                [(k, psf.forensic[k]) for k in psf.forensic],
-                tablefmt = "plain"))
-
+        print(psf.format_forensic())
 
 
 class PSF:
@@ -254,8 +249,8 @@ class PSF:
     specific revision. The revision's contents are stored in
     "revisions/<revID>/contents/".
 
-    Additionally, a "pretor_data.toml" is present in the top level of the PSF file,
-    which contains metadata about the overall archive.
+    Additionally, a "pretor_data.toml" is present in the top level of the PSF
+    file, which contains metadata about the overall archive.
     """
 
     def __init__(this):
@@ -269,6 +264,32 @@ class PSF:
             return "<PSF UNINITIALIZED>"
         else:
             return "<PSF ID={}>".format(this.ID)
+
+    def format_metadata(this):
+        """format_metadata
+
+        Return a string containing a pretty-formatted table of metadata in this
+        PSF.
+
+        :param this:
+        """
+
+        return tabulate.tabulate(
+                [(k, this.metadata[k]) for k in this.metadata],
+                tablefmt = "plain")
+
+    def format_forensic(this):
+        """format_forensic
+
+        Return a string containing a pretty-formatted table of forensic
+        data in this PSF.
+
+        :param this:
+        """
+
+        return tabulate.tabulate(
+                [(k, this.forensic[k]) for k in this.forensic],
+                tablefmt = "plain")
 
     def generate_tree(this):
         """generate_tree
@@ -542,17 +563,23 @@ class Revision:
         this.parentID = parentRev.ID
         # copy all files from the base revision to this one
         for path in parentRev.contents:
+            parent = './'
+            name = path
+            if '/' in path:
+                parent = '/'.join(path.split('/')[:-1])
+                name = path.split('/')[-1]
+
             this.contents[path] = FileData(
                     this,
-                    '/'.join(path.split('/')[:-1]),
-                    path.split('/')[-1],
+                    parent,
+                    name,
                     parentRev.contents[path].get_data())
 
     def __str__(this):
         if this.parentID is None:
             return "<Revision ID={}>".format(this.ID)
         else:
-            return "<Revision ID={} parent={}>".format(this.parentID)
+            return "<Revision ID={} parent={}>".format(this.ID, this.parentID)
 
     def get_listing(this, path):
         """get_listing
