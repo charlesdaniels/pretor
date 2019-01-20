@@ -57,7 +57,7 @@ modifying pretor course definitions.""")
         util.log_exception(e)
         sys.exit(1)
 
-def load_course_definition(path: pathlib.Path):
+def load_course_definition(origin):
     """load_course_definition
 
     Load a course definition from disk.
@@ -80,13 +80,14 @@ def load_course_definition(path: pathlib.Path):
     category name, and the value is the integer number of maximum marks.
     At least one such category must be defined.
 
-    :param path:
-    :type path: pathlib.Path
+    :param origin: Either a path to load TOML from, or a dictionary.
     """
 
-    path = pathlib.Path(path)
-    logging.debug("loading course definition from '{}'...".format(path))
-    course_data = toml.load(path)
+    course_data = origin
+    if type(origin) is not dict:
+        path = pathlib.Path(path)
+        logging.debug("loading course definition from '{}'...".format(path))
+        course_data = toml.load(path)
 
     # validate course definition
     if "course" not in course_data:
@@ -184,6 +185,29 @@ class Course:
         for assignment in this.assignments:
             s += ("\t" + str(this.assignments[assignment]) + "\n")
         return s
+
+    def dump_string(this):
+        """dump_string
+
+        Generate a serialized representation of this object that can be loaded
+        via load_course_definition().
+
+        :param this:
+        """
+
+        data = {}
+
+        data["course"] = {"name": this.name, "description": this.description}
+        for assignment_name in this.assignments:
+            assignment = data[assignment_name]
+            data[assignment_name] = {
+                    "name": assignment.name,
+                    "weight": assignment.weight,
+                    "categories": assignment.categories,
+                    "description": assignment.description
+                }
+
+        return toml.dumps(data)
 
 class Assignment:
     """Assignment

@@ -380,6 +380,7 @@ class PSF:
             if "metadata" in pretor_data:
                 this.metadata = pretor_data["metadata"]
 
+            # XXX: maybe this loop body should be it's own function?
             for revID in pretor_data["revisions"]:
                 logging.debug("processing revision {}".format(revID))
 
@@ -405,6 +406,59 @@ class PSF:
                         "Invalid archive {}, could not load rev_data.toml for revID {}"
                         .format(archive_path, revID))
 
+                # load grade data from archive
+                grade_data = None
+                course_data = None
+                try:
+                    grade_data = f.getinfo("revisions/{}/grade.toml")
+                    grade_data = f.read(grade_data)
+                    grade_data = toml.loads(grade_data.decode("utf-8")
+                except KeyError:
+                    # no grade specified
+                    pass
+                except Exception as e:
+                    util.log_exception(e)
+                    raise PSFInvalid(
+                        "Invalid archive {}, invalid grade.toml for revID {}"
+                        .format(archive_path, revID))
+
+                try:
+                    course_data = f.getinfo("revisions/{}/course.toml")
+                    course_data = f.read(course_data)
+                    course_data = toml.loads(course_data.decode("utf-8")
+                except KeyError:
+                    # no grade specified
+                    if grade_data is not None:
+                        raise PSFInvalid(
+                            "Invalid archive {}, grade specified without course for revID {}"
+                            .force(archive_path, revID))
+                except Exception as e:
+                    util.log_exception(e)
+                    raise PSFInvalid(
+                        "Invalid archive {}, invalid course.toml for revID {}"
+                        .format(archive_path, revID))
+
+                course = None
+                if course_data is not None:
+                    course = course.load_course_definition(course_data)
+
+                # validate that we will be able to correctly de-serialize the 
+                # course and grade data
+                try:
+                    if grade_data is not None:
+                        assert course_data is not None
+                        assert "assignment_name" in grade_data
+                        assert grade_data["assignment_name"] in course_data
+                except Exception as e:
+                    raise PSFInvalid(
+                        "Invalid archive {}, mangled course/grade data for revID {}"
+                        .format(archive_path, revID))
+
+                grade = None
+                if grade_data is not None:
+                    grade = grade.Grade(
+                        course.assignments[grade_data["assignment_name"]])
+
                 # validate the revision data
                 for key in ["ID", "contents"]:
                     if key not in rev_data:
@@ -417,6 +471,8 @@ class PSF:
                 if "parentID" in rev_data:
                     rev.parentID = rev_data["parentID"]
                 this.revisions[revID] = rev
+
+                rev.grade = grade
 
                 # load revision files from archive
                 for path in rev_data["contents"]:
@@ -476,7 +532,7 @@ class PSF:
         Save a revision to the already open ZipFile
 
         :param this:
-        :param f:
+        :param f: the ZipFile object
         :param revID:
         """
 
@@ -491,6 +547,10 @@ class PSF:
         rev_data["contents"] = list(rev.contents.keys())
         f.writestr("revisions/{}/rev_data.toml".format(revID),
                 toml.dumps(rev_data), compress_type=zipfile.ZIP_LZMA)
+
+        if this.grade is not None:
+            f.writestr("revisions/{}/grade.toml".format(revID),
+                    this.grade.dump_string(), compress_type=zipfile.ZIP_LZMA)
 
         # add each file to the archive
         for path in rev.contents:
@@ -556,6 +616,7 @@ class Revision:
         this.ID = revID
         this.contents = {}
         this.parentID = None
+        this.grade = None
 
         if parentRev is None:
             return

@@ -196,9 +196,8 @@ class Grade:
 
         return sum(this.categories.values())
 
-
-    def dump_file(this, path: pathlib.Path):
-        """dump_file
+    def dump_string(this, path: pathlib.Path):
+        """dump_string
 
         Dump the current category scores and any optional fields that are
         nonzero to a TOML file. This is generally used for the purpose of
@@ -208,7 +207,8 @@ class Grade:
         as the relationship between the Grade and the Assignment will not be
         preserved.
 
-        Note that the output path will be overwritten.
+        Note that this function will add a "assignment_name" field which is
+        used by the PSF archive loader. This field is not used by load_file().
 
         :param this:
         :param path:
@@ -241,10 +241,15 @@ class Grade:
         if this.penalty_score != 0:
             data["penalty_score"] = this.penalty_score
 
+        # this is required because the PSF archive loader stores the entire
+        # course definition, and we need to know which specific assignment
+        # to load
+        data["assignment_name"] this.assignment.name
+
         # dump categories
         data["categories"] = this.categories
 
-        toml.dump(path)
+        return toml.dumps(data)
 
 
     def generate_scorecard(this):
