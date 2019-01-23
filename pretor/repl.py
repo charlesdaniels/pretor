@@ -151,7 +151,10 @@ files, or it may be a single PSF file.
             logging.info("Loading PSF file '{}'".format(target))
             this.load_psf(target)
         else:
-            this.fail("not yet implemented")
+            for p in target.glob("**/*.psf"):
+                if p.is_file():
+                    logging.info("Loading PSF file '{}'".format(target))
+                    this.load_psf(p)
 
     def do_current(this, arg):
         """current
@@ -200,9 +203,9 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             this.fail("Not working on any PSF currently.")
             return
 
-        shell = os.getenv("SHELL")
-        if shell is None or shell == "":
-            shell = "sh"
+        # TODO: make this configurable, maybe, but how to set --norc
+        # portably?
+        shell = ["bash", "--norc"]
         logging.debug("interact: shell set to '{}'".format(shell))
 
         # We annotate each PSF object with the workdir we're using, that way if
@@ -215,6 +218,7 @@ Begin an interactive shell session in the current PSF so that it may be graded.
         else:
             workdir = tempfile.mkdtemp()
             current.repl_workdir = workdir
+        workdir = pathlib.Path(workdir)
         logging.debug("interact: workdir is '{}'".format(workdir))
 
         # Unpack the PSF into the workdir
@@ -228,49 +232,24 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             current.create_revision("graded",
                     current.get_revision("submission"))
         grade_revision = current.get_revision("graded")
-        grade_revision.write_files(workdir)
+        grade_revision.write_files(workdir / "submission")
 
         env = dict(os.environ)
         env["PRETOR_WORKDIR"] = workdir
         env["PRETOR_VERSION"] = constants.version
 
-        # https://stackoverflow.com/a/43012138
+        if ("assignment" in current.metadata) and ("group" in current.metadata):
+            env["PS1"] = "grading {} by {} $ ".format(
+                    current.metadata["assignment"],
+                    current.metadata["group"])
+        else:
+            logging.warning("'{}' missing metadata".format(current))
+            env["PS1"] = "grading [MISSING METADATA] $ "
 
-        # save original tty setting then set it to raw mode
-        old_tty = termios.tcgetattr(sys.stdin)
-        tty.setraw(sys.stdin.fileno())
 
-        # open pseudo-terminal to interact with subprocess
-        master_fd, slave_fd = pty.openpty()
-
-        # use os.setsid() make it run in a new process group, or bash job
-        # control will not be enabled
-        p = subprocess.Popen(shell,
-                  preexec_fn=os.setsid,
-                  stdin=slave_fd,
-                  stdout=slave_fd,
-                  stderr=slave_fd,
-                  universal_newlines=True,
-                  env=env)
-
-        # set prompt and CD to the workdir
-        os.write(master_fd, b'export PS1="(pretor-repl) $PS1"\n')
-        os.write(master_fd, b'cd "$PRETOR_WORKDIR"\n')
-
-        while p.poll() is None:
-            r, w, e = select.select([sys.stdin, master_fd], [], [])
-            if sys.stdin in r:
-                d = os.read(sys.stdin.fileno(), 10240)
-                os.write(master_fd, d)
-            elif master_fd in r:
-                o = os.read(master_fd, 10240)
-                if o:
-                    os.write(sys.stdout.fileno(), o)
+        p = subprocess.Popen(shell, env = env, cwd = workdir)
 
         status = p.wait()
-
-        # restore tty settings back
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
 
 
     def do_shell(this, arg):

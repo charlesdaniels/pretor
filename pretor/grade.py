@@ -244,7 +244,7 @@ class Grade:
         # this is required because the PSF archive loader stores the entire
         # course definition, and we need to know which specific assignment
         # to load
-        data["assignment_name"] this.assignment.name
+        data["assignment_name"] = this.assignment.name
 
         # dump categories
         data["categories"] = this.categories

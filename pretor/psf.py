@@ -412,8 +412,8 @@ class PSF:
                 try:
                     grade_data = f.getinfo("revisions/{}/grade.toml")
                     grade_data = f.read(grade_data)
-                    grade_data = toml.loads(grade_data.decode("utf-8")
-                except KeyError:
+                    grade_data = toml.loads(grade_data.decode("utf-8"))
+                except KeyError as e:
                     # no grade specified
                     pass
                 except Exception as e:
@@ -425,7 +425,7 @@ class PSF:
                 try:
                     course_data = f.getinfo("revisions/{}/course.toml")
                     course_data = f.read(course_data)
-                    course_data = toml.loads(course_data.decode("utf-8")
+                    course_data = toml.loads(course_data.decode("utf-8"))
                 except KeyError:
                     # no grade specified
                     if grade_data is not None:
