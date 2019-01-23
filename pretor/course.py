@@ -85,7 +85,7 @@ def load_course_definition(origin):
 
     course_data = origin
     if type(origin) is not dict:
-        path = pathlib.Path(path)
+        path = pathlib.Path(origin)
         logging.debug("loading course definition from '{}'...".format(path))
         course_data = toml.load(path)
 

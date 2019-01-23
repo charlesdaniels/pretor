@@ -16,6 +16,8 @@ import termios
 import tty
 
 from . import constants
+from . import course
+from . import grade
 from . import util
 from . import psf
 
@@ -73,6 +75,9 @@ class REPL(cmd.Cmd):
         this.symtab["#status"] = True
         this.symtab["#laststaus"] = True
         this.symtab["#error"] = ""
+
+        # configurable
+        this.symtab["coursepath"] = "./"
 
     def do_exit(this, arg):
         """exit
@@ -234,19 +239,76 @@ Begin an interactive shell session in the current PSF so that it may be graded.
         grade_revision = current.get_revision("graded")
         grade_revision.write_files(workdir / "submission")
 
+        # make sure the metadata we'll need is present
+        metadata = current.metadata
+        metadata_ok = ("assignment" in metadata) and \
+            ("group" in metadata) and \
+            ("course" in metadata)
+
+        if not metadata_ok:
+            logging.warning("'{}' missing metadata".format(current))
+
+        courses = {}
+        for p in this.symtab["coursepath"].split(":"):
+            p = pathlib.Path(p)
+            if p.is_file():
+                try:
+                    c = course.load_course_definition(p)
+                    courses[c.name] = c
+                except Exception as e:
+                    util.log_exception(e)
+                    logging.warning("failed to load course from '{}'"
+                            .format(p))
+            else:
+                for fp in p.glob("**/*.toml"):
+                    try:
+                        c = course.load_course_definition(fp)
+                        courses[c.name] = c
+                    except Exception as e:
+                        util.log_exception(e)
+                        logging.warning("failed to load course from '{}'"
+                                .format(fp))
+
+
+        # Create a Grade object and associate it with this revision
+        grade_obj = None
+        if metadata_ok:
+            if metadata["course"] not in courses:
+                logging.error("no course found in '{}': '{}'"
+                        .format(this.symtab["coursepath"], metadata["course"]))
+
+            elif metadata["assignment"] not in courses[metadata["course"]].assignments:
+                logging.error("no assignment '{}' in course '{}'"
+                        .format(metadata["assignment"], metadata["course"]))
+
+            elif grade_revision.grade is not None:
+                grade_obj = grade_revision.grade
+
+            else:
+                grade_obj = grade.Grade(
+                        courses[metadata["course"]].assignments[metadata["assignment"]])
+                grade_revision.grade = grade
+
+        if grade_obj is None:
+            logging.warning("unable to instantiate new grade, PSF may have missing or invalid metadata")
+
+        else:
+            # write out grade file
+            with open(workdir / "grade.toml", "w") as f:
+                f.write(grade_obj.dump_string())
+
         env = dict(os.environ)
         env["PRETOR_WORKDIR"] = workdir
         env["PRETOR_VERSION"] = constants.version
 
-        if ("assignment" in current.metadata) and ("group" in current.metadata):
+        if metadata_ok:
             env["PS1"] = "grading {} by {} $ ".format(
                     current.metadata["assignment"],
                     current.metadata["group"])
         else:
-            logging.warning("'{}' missing metadata".format(current))
             env["PS1"] = "grading [MISSING METADATA] $ "
 
-
+        logging.info("dropping you to a shell: {}".format(' '.join(shell)))
         p = subprocess.Popen(shell, env = env, cwd = workdir)
 
         status = p.wait()
@@ -314,6 +376,8 @@ Begin grading the next PSF file in the queue.
                 this.fail("Reached end of queue, no further PSF files to process")
             else:
                 this.symtab["#current_psf"] += 1
+
+        this.do_current([])
 
     def do_symtab(this, arg):
         """symtab
@@ -470,11 +534,13 @@ PSF formatted submissions.""")
     parser.add_argument("--debug", "-d", action="store_true", default=False,
             help="Log debugging output to the console.")
 
-    parser.add_argument("--coursedir", "-c", default=None,
+    parser.add_argument("--coursepath", "-c", default=None,
             help="Specify the directory where course files are stored. " +
             "If omitted, this can be set interactively via " +
             "'set coursedir /some/path'. Note that a single course file " +
-            "may be specified instead of a directory if desired.")
+            "may be specified instead of a directory if desired. " +
+            "Multiple files or directories may be specified, delimited with " +
+            "the ':' character")
 
     parser.add_argument("--ingest", "-i", default=None,
             help="Automatically ingest the PSF files from the specified " +
@@ -511,8 +577,8 @@ PSF formatted submissions.""")
             for line in f:
                 the_repl.exec(line)
 
-    if args.coursedir is not None:
-        the_repl.exec("set coursedir '{}'".format(args.coursedir))
+    if args.coursepath is not None:
+        the_repl.exec("set coursepath '{}'".format(args.coursepath))
 
     if args.ingest is not None:
         the_repl.exec("ingest '{}'".format(args.ingest))

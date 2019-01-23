@@ -196,7 +196,7 @@ class Grade:
 
         return sum(this.categories.values())
 
-    def dump_string(this, path: pathlib.Path):
+    def dump_string(this):
         """dump_string
 
         Dump the current category scores and any optional fields that are
@@ -211,11 +211,7 @@ class Grade:
         used by the PSF archive loader. This field is not used by load_file().
 
         :param this:
-        :param path:
-        :type path: pathlib.Path
         """
-
-        logging.debug("dumping grade {} to '{}'".format(this, path))
 
         data = {}
 

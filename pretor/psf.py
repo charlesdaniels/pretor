@@ -340,6 +340,7 @@ class PSF:
 
         archive_path = pathlib.Path(archive_path)
 
+
         with zipfile.ZipFile(archive_path, 'r') as f:
 
             # load forensic data from PSF
@@ -442,7 +443,7 @@ class PSF:
                 if course_data is not None:
                     course = course.load_course_definition(course_data)
 
-                # validate that we will be able to correctly de-serialize the 
+                # validate that we will be able to correctly de-serialize the
                 # course and grade data
                 try:
                     if grade_data is not None:
@@ -493,6 +494,8 @@ class PSF:
                                 "Invalid archive {}, could not load {} from revision {}"
                                 .format(archive_path, path, revID))
 
+        this.metadata["archive_name"] = archive_path
+
     def save_to_archive(this, path: pathlib.Path):
         """save_to_archive
 
@@ -515,6 +518,7 @@ class PSF:
             pretor_data["pretor_version"] = constants.version
             pretor_data["revisions"] = list(this.revisions.keys())
             pretor_data["metadata"] = this.metadata
+            pretor_data["archive_name"] = this.path
             f.writestr("pretor_data.toml",
                     toml.dumps(pretor_data), compress_type=zipfile.ZIP_LZMA)
 
@@ -548,6 +552,7 @@ class PSF:
         f.writestr("revisions/{}/rev_data.toml".format(revID),
                 toml.dumps(rev_data), compress_type=zipfile.ZIP_LZMA)
 
+        # TODO: also need to save course data
         if this.grade is not None:
             f.writestr("revisions/{}/grade.toml".format(revID),
                     this.grade.dump_string(), compress_type=zipfile.ZIP_LZMA)
