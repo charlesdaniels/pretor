@@ -158,7 +158,7 @@ files, or it may be a single PSF file.
         else:
             for p in target.glob("**/*.psf"):
                 if p.is_file():
-                    logging.info("Loading PSF file '{}'".format(target))
+                    logging.info("Loading PSF file '{}'".format(p))
                     this.load_psf(p)
 
     def do_current(this, arg):
@@ -174,9 +174,36 @@ Display information about the PSF currently being manipulated, if any.
             return
 
         s = str(current) + "\n"
-        s += current.format_metadata()
+        s += current.format_metadata() + "\n"
+        if current.is_graded():
+            s += "PSF has been graded"
+        else:
+            s += "PSF has NOT been graded"
 
         this.symtab["#result"] = s
+
+    def do_showgrade(this, arg):
+        """showgrade
+
+Display the assigned grade for the PSF, if any
+        """
+
+        # TODO: this is one of the places where support for different graded
+        # revisions will need to be added.
+
+        current = this.get_current()
+
+        if current is None:
+            this.fail("Not working on any PSF currently.")
+            return
+
+        if not current.is_graded():
+            this.fail("PSF has not been graded")
+            return
+
+        # TODO: evil
+        this.symtab["#result"] = current.revisions["graded"].grade.generate_scorecard()
+
 
     def do_forensic(this, arg):
         """forensic
@@ -287,7 +314,7 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             else:
                 grade_obj = grade.Grade(
                         courses[metadata["course"]].assignments[metadata["assignment"]])
-                grade_revision.grade = grade
+                grade_revision.grade = grade_obj
 
         if grade_obj is None:
             logging.warning("unable to instantiate new grade, PSF may have missing or invalid metadata")
@@ -309,9 +336,17 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             env["PS1"] = "grading [MISSING METADATA] $ "
 
         logging.info("dropping you to a shell: {}".format(' '.join(shell)))
-        p = subprocess.Popen(shell, env = env, cwd = workdir)
+        try:
+            p = subprocess.Popen(shell, env = env, cwd = workdir)
+            status = p.wait()
+        except Exception as e:
+            util.log_exception(e)
 
-        status = p.wait()
+        logging.info("shell session terminated")
+
+        # load up any changes made by the grader
+        if grade_obj is not None:
+            grade_obj.load_file(workdir / "grade.toml")
 
 
     def do_shell(this, arg):
@@ -347,7 +382,14 @@ Note that commands like 'cd' will not affect the REPL.
                 else:
                     s += "    "
 
-                s += str(p) + "\n"
+                s += "{:4d}: ".format(i)
+
+                if "archive_name" in p.metadata:
+                    s += str(p.metadata["archive_name"]).split("/")[-1]
+                else:
+                    s += str(p)
+
+                s += "\n"
 
             this.symtab["#result"] = s[:-1]  # chop off trailing \n
 

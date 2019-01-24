@@ -215,27 +215,14 @@ class Grade:
 
         data = {}
 
-        # dump any optional fields, if they exist
-        if this.feedback is not "":
-            data["feedback"] = this.feedback
-
-        if this.bonus_multiplier != 0:
-            data["bonus_multiplier"] = this.bonus_multiplier
-
-        if this.bonus_marks != 0:
-            data["bonus_marks"] = this.bonus_marks
-
-        if this.bonus_score != 0:
-            data["bonus_score"] = this.bonus_score
-
-        if this.penalty_multiplier != 0:
-            data["penalty_multiplier"] = this.penalty_multiplier
-
-        if this.penalty_marks != 0:
-            data["penalty_marks"] = this.penalty_marks
-
-        if this.penalty_score != 0:
-            data["penalty_score"] = this.penalty_score
+        # dump optional fields
+        data["feedback"] = this.feedback
+        data["bonus_multiplier"] = this.bonus_multiplier
+        data["bonus_marks"] = this.bonus_marks
+        data["bonus_score"] = this.bonus_score
+        data["penalty_multiplier"] = this.penalty_multiplier
+        data["penalty_marks"] = this.penalty_marks
+        data["penalty_score"] = this.penalty_score
 
         # this is required because the PSF archive loader stores the entire
         # course definition, and we need to know which specific assignment

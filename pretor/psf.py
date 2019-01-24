@@ -183,6 +183,7 @@ def psf_cli():
         psf.forensic["hostname"] = socket.gethostname()
         psf.forensic["timestamp"] = datetime.datetime.now()
         psf.forensic["user"] = getpass.getuser()
+        psf.forensic["source_dir"] = args.source
 
         # write output file
         if args.name is None:
@@ -339,7 +340,6 @@ class PSF:
         logging.debug("loading PSF archive {}".format(archive_path))
 
         archive_path = pathlib.Path(archive_path)
-
 
         with zipfile.ZipFile(archive_path, 'r') as f:
 
@@ -509,7 +509,6 @@ class PSF:
         logging.debug("saving PSF {} to {}".format(this, path))
 
         path = pathlib.Path(path)
-
         with zipfile.ZipFile(path, "w") as f:
 
             # write pretor_data.toml
@@ -518,7 +517,6 @@ class PSF:
             pretor_data["pretor_version"] = constants.version
             pretor_data["revisions"] = list(this.revisions.keys())
             pretor_data["metadata"] = this.metadata
-            pretor_data["archive_name"] = this.path
             f.writestr("pretor_data.toml",
                     toml.dumps(pretor_data), compress_type=zipfile.ZIP_LZMA)
 
@@ -553,7 +551,7 @@ class PSF:
                 toml.dumps(rev_data), compress_type=zipfile.ZIP_LZMA)
 
         # TODO: also need to save course data
-        if this.grade is not None:
+        if rev.grade is not None:
             f.writestr("revisions/{}/grade.toml".format(revID),
                     this.grade.dump_string(), compress_type=zipfile.ZIP_LZMA)
 
@@ -598,6 +596,21 @@ class PSF:
 
         else:
             return this.revisions[revID]
+
+    def is_graded(this):
+        """is_graded
+
+        Check if any revision has a non-null grade field.
+
+        :param this:
+        """
+
+        for revID in this.revisions:
+            rev = this.revisions[revID]
+            if rev.grade is not None:
+                return True
+        return False
+
 
 class Revision:
     """Revision
