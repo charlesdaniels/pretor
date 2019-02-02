@@ -78,6 +78,8 @@ class REPL(cmd.Cmd):
 
         # configurable
         this.symtab["coursepath"] = "./"
+        this.symtab["revision"] = ""
+        this.symtab["base_revision"] = "submission"
 
     def do_exit(this, arg):
         """exit
@@ -188,9 +190,6 @@ Display information about the PSF currently being manipulated, if any.
 Display the assigned grade for the PSF, if any
         """
 
-        # TODO: this is one of the places where support for different graded
-        # revisions will need to be added.
-
         current = this.get_current()
 
         if current is None:
@@ -201,8 +200,18 @@ Display the assigned grade for the PSF, if any
             this.fail("PSF has not been graded")
             return
 
-        # TODO: evil
-        this.symtab["#result"] = current.revisions["graded"].grade.generate_scorecard()
+        if this.symtab["revision"] != "":
+                rev = current.get_revision(this.symtab["revision"])
+                if rev.grade is None:
+                    this.symtab["#status"] = False
+                    this.symtab["#error"] = \
+                            "Revision '{}' not graded".format(rev)
+
+                else:
+                    this.symtab["#result"] = rev.grade.generate_scorecard()
+        else:
+            this.symtab["#result"] = \
+                    current.get_grade_rev().grade.generate_scorecard()
 
 
     def do_forensic(this, arg):
@@ -253,17 +262,34 @@ Begin an interactive shell session in the current PSF so that it may be graded.
         workdir = pathlib.Path(workdir)
         logging.debug("interact: workdir is '{}'".format(workdir))
 
-        # Unpack the PSF into the workdir
-        #
-        # TODO: this needs to be *much* more robust, namely need to handle
-        # inputs with revisions other than 'submission', and cases where there
-        # is already a graded revision.
-        if "graded" in current.revisions:
-            logging.warning("revising grades is not properly supported yet, any changes you make will overwrite the previous grade information")
+        # handle various case of revision symbol and graded status
+        grade_revision = None
+        if this.symtab["revision"] != "":
+            if this.symtab["revision"] in current.revisions:
+                # case where we have a known revision and it already exists
+                grade_revision = current.get_revision(this.symtab["revision"])
+
+            else:
+                # case where we have a known revision, but it dosen't
+                # exist yet
+                logging.info("creating revision '{}'"
+                        .format(this.symtab["revision"]))
+                grade_revision = current.create_revision(
+                        this.symtab["revision"], this.symtab["base_revision"])
+
+        elif current.is_graded():
+            logging.info("{} has already been graded. ".format(current) +
+                    "If this is surprising, you may want to check for " +
+                    "tampering.")
+            grade_revision = current.create_grade_revision()
+            this.symtab["revision"] = grade_revision.ID
+
         else:
-            current.create_revision("graded",
-                    current.get_revision("submission"))
-        grade_revision = current.get_revision("graded")
+            grade_revision = current.create_revision("graded_0",
+                    this.symtab["base_revision"])
+            this.symtab["revision"] = grade_revision.ID
+
+        # Unpack the PSF into the workdir
         grade_revision.write_files(workdir / "submission")
 
         # make sure the metadata we'll need is present
@@ -275,46 +301,53 @@ Begin an interactive shell session in the current PSF so that it may be graded.
         if not metadata_ok:
             logging.warning("'{}' missing metadata".format(current))
 
-        courses = {}
-        for p in this.symtab["coursepath"].split(":"):
-            p = pathlib.Path(p)
-            if p.is_file():
-                try:
-                    c = course.load_course_definition(p)
-                    courses[c.name] = c
-                except Exception as e:
-                    util.log_exception(e)
-                    logging.warning("failed to load course from '{}'"
-                            .format(p))
-            else:
-                for fp in p.glob("**/*.toml"):
+        # we only need to create a new grade revision if there isn't one
+        if grade_revision.grade is None:
+
+            # load all courses in the coursepath
+            courses = {}
+            for p in this.symtab["coursepath"].split(":"):
+                p = pathlib.Path(p)
+                if p.is_file():
                     try:
-                        c = course.load_course_definition(fp)
+                        c = course.load_course_definition(p)
                         courses[c.name] = c
                     except Exception as e:
                         util.log_exception(e)
                         logging.warning("failed to load course from '{}'"
-                                .format(fp))
+                                .format(p))
+                else:
+                    for fp in p.glob("**/*.toml"):
+                        try:
+                            c = course.load_course_definition(fp)
+                            courses[c.name] = c
+                        except Exception as e:
+                            util.log_exception(e)
+                            logging.warning("failed to load course from '{}'"
+                                    .format(fp))
 
 
-        # Create a Grade object and associate it with this revision
-        grade_obj = None
-        if metadata_ok:
-            if metadata["course"] not in courses:
-                logging.error("no course found in '{}': '{}'"
-                        .format(this.symtab["coursepath"], metadata["course"]))
+            # Create a Grade object and associate it with this revision
+            grade_obj = None
+            if metadata_ok:
+                if metadata["course"] not in courses:
+                    logging.error("no course found in '{}': '{}'"
+                            .format(this.symtab["coursepath"], metadata["course"]))
 
-            elif metadata["assignment"] not in courses[metadata["course"]].assignments:
-                logging.error("no assignment '{}' in course '{}'"
-                        .format(metadata["assignment"], metadata["course"]))
+                elif metadata["assignment"] not in courses[metadata["course"]].assignments:
+                    logging.error("no assignment '{}' in course '{}'"
+                            .format(metadata["assignment"], metadata["course"]))
 
-            elif grade_revision.grade is not None:
-                grade_obj = grade_revision.grade
+                elif grade_revision.grade is not None:
+                    # this case should never occur
+                    grade_obj = grade_revision.grade
 
-            else:
-                grade_obj = grade.Grade(
-                        courses[metadata["course"]].assignments[metadata["assignment"]])
-                grade_revision.grade = grade_obj
+                else:
+                    grade_obj = grade.Grade(
+                            courses[metadata["course"]].assignments[metadata["assignment"]])
+                    grade_revision.grade = grade_obj
+
+        grade_obj = grade_revision.grade
 
         if grade_obj is None:
             logging.warning("unable to instantiate new grade, PSF may have missing or invalid metadata")
@@ -347,6 +380,30 @@ Begin an interactive shell session in the current PSF so that it may be graded.
         # load up any changes made by the grader
         if grade_obj is not None:
             grade_obj.load_file(workdir / "grade.toml")
+
+    def do_lsrev(this, arg):
+        """lsrev
+
+List all revisions that exist in the current file.
+
+HINT: you can change your working revision via 'set revision REVID'.
+"""
+
+        current = this.get_current()
+
+        if current is None:
+            this.fail("Not working on any PSF currently.")
+            return
+
+        s = ""
+        for revID in current.revisions:
+            if revID == this.symtab["revision"]:
+                s += "--> {}\n".format(revID)
+
+            else:
+                s += "    {}\n".format(revID)
+
+        this.symtab["#result"] = s
 
 
     def do_shell(this, arg):

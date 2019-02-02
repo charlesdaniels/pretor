@@ -1,17 +1,19 @@
 import argparse
-import zlib
-import sys
-import io
+import copy
 import datetime
+import getpass
+import io
+import logging
 import pathlib
+import re
+import socket
+import sys
+import tabulate
 import tempfile
 import toml
 import uuid
-import tabulate
 import zipfile
-import logging
-import getpass
-import socket
+import zlib
 
 from . import constants
 from . import exceptions
@@ -566,23 +568,28 @@ class PSF:
     def create_revision(this, revID, baseRevID=None):
         """create_revision
 
-        Create a new revision.
+        Create a new revision. Note that grade data is not preserved in the
+        child, if you want that, check out create_grade_revision().
 
         :param this:
         :param revID:
-        :param baseRevID: The revID of the revision to base this one on.
-        Use None if this revision has no base.
+        :param baseRev: the revision to base this one on.  Use None if this
+        revision has no base.
         """
 
         if revID in this.revisions:
             raise PSFRevisionError(
                 "Cannot create revID {}, already exists in PSF {}"
-                .formt(revID, this))
+                .format(revID, this))
+
+        baseRev = this.get_revision(baseRevID)
 
         this.revisions[revID] = Revision(
                 this,
                 revID,
-                baseRevID)
+                baseRev)
+
+        return this.revisions[revID]
 
     def get_revision(this, revID):
         """get_revision
@@ -597,6 +604,103 @@ class PSF:
         else:
             return this.revisions[revID]
 
+    def get_grade_rev(this):
+        """get_grade_rev
+
+        Get the most recent revision which has a grade on it. This makes the
+        assumption that the list of graded revisions is linear in nature.
+        Essentially, this function searches through all revisions until it
+        finds one that has a grade attached, then follows it's child revisions
+        until it finds the "tail" of the grade revisions.
+
+        WARNING: this function makes the assumption that the grade revisions
+        are linear in nature; if this is not the case, then the behavior of
+        this function is undefined. This assumption is not validated.
+
+        WARNING: this function has an unhandled edge case -- a graded revision
+        with a child revision that is ungraded will not count as being the
+        tail of the list. If this circumstance is brought about artificially,
+        this function will return None.
+
+        :param this:
+        """
+
+        for revID in this.revisions:
+            rev = this.revisions[revID]
+            if (rev.grade is not None) and (len(this.get_children(rev)) == 0):
+                # if a revision has no children, but is graded, it *must*
+                # be the tail of the revision list.
+
+                return rev
+
+        return None
+
+    def create_grade_revision(this, baseRevID = None):
+        """create_grade_revision
+
+        Create a new revision with a dynamically selected revID for grading
+        purposes. If baseRevID is specified, then it is used as the parent
+        revision, otherwise the result of get_grade_rev() is used as the
+        parent. Any grade information already stored in the parent is copied to
+        the child.
+
+        :param this:
+        :param baseRevID:
+        """
+
+        if baseRevID == None:
+            if this.get_grade_rev() is None:
+                logging.error("failed to create grade revision without " + 
+                        "explicit baseRevID: no graded revisions in {}"
+                        .format(this))
+                raise exceptions.StateError(
+                        "no graded revisions in {}".format(this))
+
+            baseRevID = this.get_grade_rev().ID
+
+        baseRev = this.get_revision(baseRevID)
+
+        newRevID = baseRevID
+        revNo = 0
+        while newRevID in this.revisions:
+            if re.match(r".*_[0-9]+", newRevID):
+                revNo = int(str(
+                    re.findall(r"_[0-9]+", newRevID)[-1]).replace("_", "")) + 1
+                newRevID = re.sub(r"_[0-9]+", "", newRevID)
+                newRevID = "{}_{}".format(newRevID, revNo)
+            else:
+                newRevID = "{}_{}".format(newRevID, revNo)
+
+        newRev = this.create_revision(newRevID, baseRevID)
+
+        # XXX: this is a deep copy, which means that newRev.grade.assignment is
+        # a duplicate of baseRev.grade.assignment. At time of writing, this is
+        # fine since the Assignment object is only ever read, never written. If
+        # this assumption changes in the future, this will break.
+        newRev.grade = copy.deepcopy(baseRev.grade)
+
+        return newRev
+
+
+    def get_children(this, rev):
+        """get_children
+
+        Given a revision, find all revisions which have this revision as an
+        *immediate* parent.
+
+        :param this:
+        :param rev:
+        :type rev: Revision
+        """
+
+        revs = []
+        for revID in this.revisions:
+            rev = this.revisions[revID]
+            if rev.parentID == rev.ID:
+                revs.append(rev)
+
+        return revs
+
     def is_graded(this):
         """is_graded
 
@@ -605,11 +709,7 @@ class PSF:
         :param this:
         """
 
-        for revID in this.revisions:
-            rev = this.revisions[revID]
-            if rev.grade is not None:
-                return True
-        return False
+        return this.get_grade_rev() is not None
 
 
 class Revision:
