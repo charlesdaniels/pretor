@@ -75,9 +75,11 @@ class REPL(cmd.Cmd):
         this.symtab["#status"] = True
         this.symtab["#laststaus"] = True
         this.symtab["#error"] = ""
+        this.symtab["#finalized"] = []
 
         # configurable
         this.symtab["coursepath"] = "./"
+        this.symtab["outputdir"] = "./"
         this.symtab["revision"] = ""
         this.symtab["base_revision"] = "submission"
 
@@ -117,6 +119,7 @@ Set a symbol in the REPL to the specified value. Result is set to to as one.
 
         if symbolname.startswith('#'):
             this.fail("may not override internal symbols")
+            return
         else:
             if symbolname in this.symtab:
                 this.symtab["#result"] = this.symtab[symbolname]
@@ -153,6 +156,7 @@ files, or it may be a single PSF file.
 
         if not target.exists():
             this.fail("No such file or directory '{}'".format(target))
+            return
 
         if target.is_file():
             logging.info("Loading PSF file '{}'".format(target))
@@ -426,6 +430,7 @@ Note that commands like 'cd' will not affect the REPL.
 
         if '#psf' not in this.symtab:
             this.fail("No PSF files loaded.")
+            return
 
         else:
             s = ""
@@ -450,31 +455,120 @@ Note that commands like 'cd' will not affect the REPL.
 
             this.symtab["#result"] = s[:-1]  # chop off trailing \n
 
-    def do_next(this, arg):
-        """next
+    def do_select(this, arg):
+        """select PSFNO [force]
 
-Begin grading the next PSF file in the queue.
-        """
+Change the active PSF to PSFNO, which is an index as shown by the loaded
+command.
 
-        # TODO: should check if the current PSF is finished being graded and
-        # error out if not as a safety feature. This will require hooks into
-        # psf.PSF to handle stored grades.
+If "force" is specified, then the active PSF can be switched even if the
+current one has not been finalized yet.
+"""
 
-        # TODO: rather than linearly advancing, should search through all of
-        # #psf for the next ungraded one, in case we skipped one for some
-        # reason.
+        this.check_arg(1)
 
         if "#psf" not in this.symtab:
             this.fail("No PSFs loaded")
             return
 
-        if "#current_psf" not in this.symtab:
-            this.symtab["#current_psf"] = 0
-        else:
-            if this.symtab["#current_psf"] >= (len(this.symtab["#psf"]) - 1):
-                this.fail("Reached end of queue, no further PSF files to process")
+        psfno = int(this.symtab["#argv"][1])
+        force = "force" in this.symtab["#argv"]
+
+        this.switch_to(psfno, force)
+
+    def do_next(this, arg):
+        """next [force]
+
+Begin grading the next un-finalized PSF file in the queue.
+
+If "force" is specified, then the active PSF can be switched even if the
+current one has not been finalized yet.
+        """
+
+        if "#psf" not in this.symtab:
+            this.fail("No PSFs loaded")
+            return
+
+        force = "force" in this.symtab["#argv"]
+
+        for psfno in range(len(this.symtab["#psf"])):
+            if psfno in this.symtab["#finalized"]:
+                continue
+
             else:
-                this.symtab["#current_psf"] += 1
+                this.switch_to(psfno, force)
+                break
+
+
+    def do_finalize(this, arg):
+        """finalize [next]
+
+Finalizes the active PSF, causing it to be written out to disk in the specified
+output directory. The output directory can be changed with 'set outputdir
+/some/path'.
+"""
+        current = this.get_current()
+
+        if current is None:
+            this.fail("Not working on any PSF currently.")
+            return
+
+        metadata_ok = True
+        for key in ["semester", "course", "section", "group", "assignment"]:
+            if key not in current.metadata:
+                logging.warning("{} missing metadata: '{}', using UUID"
+                        .format(this, key))
+                metadata_ok = False
+
+
+        if metadata_ok:
+            name = "{}-{}-{}-{}-{}".format(
+                        current.metadata["semester"],
+                        current.metadata["course"],
+                        current.metadata["section"],
+                        current.metadata["group"],
+                        current.metadata["assignment"])
+
+        else:
+            name = str(current.ID)
+
+        name += ".psf"
+
+        dest = pathlib.Path(this.symtab["outputdir"]) / name
+        logging.info("writing to '{}'".format(dest))
+        current.save_to_archive(dest)
+
+        this.symtab["#finalized"].append(this.symtab["#current_psf"])
+        this.symtab.pop("#current_psf")
+
+
+    def switch_to(this, psfno, force):
+        psfnow = int(psfno)
+
+        if this.symtab["#psf"] not in this.symtab["#finalized"]:
+            if "#current_psf" not in this.symtab:
+                pass
+
+            elif not force:
+                this.fail("Your current PSF is not finalized, refusing to select")
+                return
+
+            else:
+                logging.warning("force was specified, switching away from non-finalized PSF")
+
+        if psfno in this.symtab["#finalized"]:
+            logging.warning("PSF {} has been marked as finalized".format(psfno))
+
+        print(psfno)
+        print(this.symtab["#psf"])
+        print(len(this.symtab["#psf"]))
+        if (psfno > (len(this.symtab["#psf"]) - 1)) or (psfno < 0):
+            this.fail("PSF {} does not identify a loaded PSF".format(psfno))
+            return
+        else:
+            if "#current_psf" not in this.symtab:
+                this.symtab["#current_psf"] = 0
+            this.symtab["#current_psf"] = psfno
 
         this.do_current([])
 
@@ -646,6 +740,11 @@ PSF formatted submissions.""")
             "directory. This can be done interactively via the 'ingest' " +
             "command.")
 
+    parser.add_argument("--outputdir", "-o", default=None,
+            help="Specify the directory where finalized PSF files should " +
+            "be saved. This may be specified interactively via " +
+            "'set outputdir /some/path'. (default: ./)")
+
     parser.add_argument("--rc", "-r", type=pathlib.Path,
             default=pathlib.Path("~/.config/pretor/rc").expanduser(),
             help="Specify RC file to use. Each line in this file is " +
@@ -670,17 +769,20 @@ PSF formatted submissions.""")
 
     the_repl = REPL()
 
-    if args.rc.exists():
-        logging.debug("loading RC file '{}'".format(args.rc))
-        with open(args.rc, 'r') as f:
-            for line in f:
-                the_repl.exec(line)
-
     if args.coursepath is not None:
         the_repl.exec("set coursepath '{}'".format(args.coursepath))
 
     if args.ingest is not None:
         the_repl.exec("ingest '{}'".format(args.ingest))
+
+    if args.outputdir is not None:
+        this.repl.exec("set outputdir '{}'".format(args.outputdir))
+
+    if args.rc.exists():
+        logging.debug("loading RC file '{}'".format(args.rc))
+        with open(args.rc, 'r') as f:
+            for line in f:
+                the_repl.exec(line)
 
     signal.signal(signal.SIGINT, signal_handler)
 
