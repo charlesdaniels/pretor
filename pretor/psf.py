@@ -18,6 +18,8 @@ import zlib
 from . import constants
 from . import exceptions
 from . import util
+from . import course
+from . import grade
 
 def psf_cli():
     parser = argparse.ArgumentParser(
@@ -112,6 +114,10 @@ def psf_cli():
 
     action.add_argument("--forensic", "-f", default=False, action="store_true",
             help="Display forensic data encoded in the input archive.")
+
+    action.add_argument("--scorecard", "-R", default=False, action="store_true",
+            help="Generate a scorecard for the canonical grade" +
+            "revision, or for the one specified as an argument to --revid.")
 
     args = parser.parse_args()
 
@@ -234,6 +240,28 @@ def psf_cli():
 
     elif args.forensic:
         print(psf.format_forensic())
+
+    elif args.scorecard is not None:
+        if args.revid == "submission":
+            if psf.is_graded():
+                sys.stdout.write(psf.get_grade_rev().grade.generate_scorecard())
+            else:
+                logging.error("PSF has not been graded")
+                sys.exit(1)
+        else:
+            if args.revid in psf.revisions:
+                if psf.get_revision(args.revid).grade is not None:
+                    sys.stdout.write(
+                            psf.get_revision(args.revid).grade.generate_scorecard())
+                else:
+                    logging.error("revision {} has no grade".format(args.revid))
+                    sys.exit(1)
+
+            else:
+                logging.error("no such revision {}".format(args.revid))
+                sys.exit(1)
+
+
 
 
 class PSF:
@@ -413,11 +441,12 @@ class PSF:
                 grade_data = None
                 course_data = None
                 try:
-                    grade_data = f.getinfo("revisions/{}/grade.toml")
+                    grade_data = f.getinfo("revisions/{}/grade.toml".format(revID))
                     grade_data = f.read(grade_data)
                     grade_data = toml.loads(grade_data.decode("utf-8"))
                 except KeyError as e:
                     # no grade specified
+                    logging.debug("no grade.toml: {}".format(e))
                     pass
                 except Exception as e:
                     util.log_exception(e)
@@ -426,24 +455,25 @@ class PSF:
                         .format(archive_path, revID))
 
                 try:
-                    course_data = f.getinfo("revisions/{}/course.toml")
+                    course_data = f.getinfo("revisions/{}/course.toml".format(revID))
                     course_data = f.read(course_data)
                     course_data = toml.loads(course_data.decode("utf-8"))
                 except KeyError:
                     # no grade specified
+                    logging.debug("no course data specified")
                     if grade_data is not None:
                         raise PSFInvalid(
                             "Invalid archive {}, grade specified without course for revID {}"
-                            .force(archive_path, revID))
+                            .format(archive_path, revID))
                 except Exception as e:
                     util.log_exception(e)
                     raise PSFInvalid(
                         "Invalid archive {}, invalid course.toml for revID {}"
                         .format(archive_path, revID))
 
-                course = None
+                course_obj = None
                 if course_data is not None:
-                    course = course.load_course_definition(course_data)
+                    course_obj = course.load_course_definition(course_data)
 
                 # validate that we will be able to correctly de-serialize the
                 # course and grade data
@@ -457,10 +487,10 @@ class PSF:
                         "Invalid archive {}, mangled course/grade data for revID {}"
                         .format(archive_path, revID))
 
-                grade = None
+                grade_obj = None
                 if grade_data is not None:
-                    grade = grade.Grade(
-                        course.assignments[grade_data["assignment_name"]])
+                    grade_obj = grade.Grade(
+                        course_obj.assignments[grade_data["assignment_name"]])
 
                 # validate the revision data
                 for key in ["ID", "contents"]:
@@ -475,7 +505,7 @@ class PSF:
                     rev.parentID = rev_data["parentID"]
                 this.revisions[revID] = rev
 
-                rev.grade = grade
+                rev.grade = grade_obj
 
                 # load revision files from archive
                 for path in rev_data["contents"]:
