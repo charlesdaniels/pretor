@@ -552,10 +552,13 @@ class PSF:
         f.writestr("revisions/{}/rev_data.toml".format(revID),
                 toml.dumps(rev_data), compress_type=zipfile.ZIP_LZMA)
 
-        # TODO: also need to save course data
         if rev.grade is not None:
             f.writestr("revisions/{}/grade.toml".format(revID),
                     rev.grade.dump_string(), compress_type=zipfile.ZIP_LZMA)
+
+            f.writestr("revisions/{}/course.toml".format(revID),
+                    rev.grade.assignment.course.dump_string(),
+                    compress_type=zipfile.ZIP_LZMA)
 
         # add each file to the archive
         for path in rev.contents:

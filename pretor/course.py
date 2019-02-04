@@ -199,13 +199,14 @@ class Course:
 
         data["course"] = {"name": this.name, "description": this.description}
         for assignment_name in this.assignments:
-            assignment = data[assignment_name]
+            assignment = this.assignments[assignment_name]
             data[assignment_name] = {
                     "name": assignment.name,
                     "weight": assignment.weight,
-                    "categories": assignment.categories,
                     "description": assignment.description
                 }
+            for key in assignment.categories:
+                data[assignment_name][key] = assignment.categories[key]
 
         return toml.dumps(data)
 
