@@ -88,7 +88,19 @@ def psf_cli():
     # should not be used by students as the generated PSF files will be
     # impossible to grade.
     parser.add_argument("--no_meta_check", default=False, action="store_true",
-            help = argparse.SUPPRESS)
+            help=argparse.SUPPRESS)
+
+    # Deliberately undocumented option - suppress check that pretor.toml exists
+    # in the input directory and allow packing of any directory.  This should
+    # not be used by students, as it would allow creating a submission that may
+    # be invalid or improperly rooted. It would also permit bypassing any
+    # plugin-supplied checks.
+    parser.add_argument("--allow_no_toml", default=False, action="store_true",
+            help=argparse.SUPPRESS)
+
+    parser.add_argument("--force", "-F", default=False, action="store_true",
+            help="Only used when combined with --create. Causes output " +
+            "file to be overwritten even if it already exists.")
 
     action = parser.add_mutually_exclusive_group(required=True)
 
@@ -133,9 +145,15 @@ def psf_cli():
         pretor_path = pathlib.Path(args.source, "pretor.toml").resolve()
         pretor_data = {}
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
-        if pretor_path.exists():
+        if pretor_path.exists() or args.allow_no_toml:
             pretor_data = toml.load(pretor_path)
             logging.debug("loaded pretor.toml: {}".format(pretor_data))
+        elif not pretor_path.exists():
+            logging.error("'{}' does not exist, refusing to generate PSF"
+                    .format(pretor_path))
+            sys.exit(1)
+        else:
+            logging.warning("packing PSF without pretor.toml")
 
 
         if args.course is None:
@@ -180,6 +198,10 @@ def psf_cli():
         if args.no_meta_check:
             psf.metadata["invalid_no_meta_check"] = True
 
+        # flag use of --allow_no_toml
+        if args.allow_no_toml:
+            psf.metadata["allow_no_toml"] = True
+
         logging.info("generating metadata... ")
         psf.metadata["semester"] = args.semester
         psf.metadata["section"] = args.section
@@ -209,7 +231,12 @@ def psf_cli():
         output_path = output_path.resolve()
 
         logging.info("writing output... ")
-        psf.save_to_archive(output_path)
+        if not output_path.exists() or args.force:
+            psf.save_to_archive(output_path)
+        else:
+            logging.error("output file '{}' exists, refusing to overwrite"
+                .format(output_path))
+            sys.exit(1)
         logging.info("PSF written to '{}'".format(output_path))
 
         sys.exit(0)
