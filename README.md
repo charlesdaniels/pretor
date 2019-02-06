@@ -12,7 +12,29 @@ under the GPLv3 license.
 
 <!-- vim-markdown-toc GFM -->
 
+* [Overview](#overview)
+
 <!-- vim-markdown-toc -->
+
+## Overview
+
+Pretor offers the following key features:
+
+* Student assignments are always packed in a consistent fashion (no more
+  inconsistent file formats or rooting).
+
+* Grades, student submissions, and any changes made by the grader (i.e. fixing
+  a compile errors) are stored in a single archive file.
+
+* Archive files are readable using standard zip file viewers.
+
+* Support for any level of automation, from fully manual to fully automatic,
+  or anything in between.
+
+* Track multiple revisions to a student's submission grade over time.
+
+* Plugin system to allow pre-packing validation, and extensions to the grading
+  REPL. ([WiP](https://github.com/HeRCLab/pretor/issues?q=is%3Aissue+is%3Aopen+label%3A%22plugin+system%22))
 
 
 ----
