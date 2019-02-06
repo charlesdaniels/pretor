@@ -144,6 +144,7 @@ def psf_cli():
         # load data from pretor.toml
         pretor_path = pathlib.Path(args.source, "pretor.toml").resolve()
         pretor_data = {}
+        excludelist = []
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
         if pretor_path.exists() or args.allow_no_toml:
             pretor_data = toml.load(pretor_path)
@@ -155,6 +156,8 @@ def psf_cli():
         else:
             logging.warning("packing PSF without pretor.toml")
 
+        if "exclude" in pretor_data:
+            excludelist = pretor_data["exclude"]
 
         if args.course is None:
             if "course" in pretor_data:
@@ -192,7 +195,7 @@ def psf_cli():
 
         logging.info("reading data from {}".format(args.source))
         psf = PSF()
-        psf.load_from_dir(args.source, args.revid)
+        psf.load_from_dir(args.source, args.revid, excludelist)
 
         # flag use of --no_meta_check
         if args.no_meta_check:
@@ -366,7 +369,7 @@ class PSF:
 
         return s
 
-    def load_from_dir(this, path: pathlib.Path, revID):
+    def load_from_dir(this, path: pathlib.Path, revID, excludelist=[]):
         """load_from_dir
 
         Populate this PSF object from a directory.
@@ -375,6 +378,7 @@ class PSF:
         :param path:
         :type path: pathlib.Path
         :param revID: revision ID to use for the created revision"
+        :param excludelist: List of glob patterns to exclude
         """
 
         logging.debug("populating revID {} with dir {}".format(revID, path))
@@ -385,7 +389,16 @@ class PSF:
         rev = Revision(this, revID)
         this.revisions[revID] = rev
         for child in path.glob("**/*"):
-            if child.is_dir():
+
+            exclude = False
+            for pattern in excludelist:
+                if child.match(pattern):
+                    logging.debug("ignoring file '{}' per excludelist"
+                            .format(child))
+                    exclude = True
+                    break
+
+            if exclude or child.is_dir():
                 continue
 
             with open(child, 'rb') as f:
@@ -710,7 +723,7 @@ class PSF:
 
         if baseRevID == None:
             if this.get_grade_rev() is None:
-                logging.error("failed to create grade revision without " + 
+                logging.error("failed to create grade revision without " +
                         "explicit baseRevID: no graded revisions in {}"
                         .format(this))
                 raise exceptions.StateError(
