@@ -149,9 +149,13 @@ def psf_cli():
         pretor_data = {}
         excludelist = []
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
-        if pretor_path.exists() or args.allow_no_toml:
+        if pretor_path.exists():
             pretor_data = toml.load(pretor_path)
             logging.debug("loaded pretor.toml: {}".format(pretor_data))
+
+        elif args.allow_no_toml:
+            logging.warning("generating PSF without pretor.toml")
+
         elif not pretor_path.exists():
             logging.error("'{}' does not exist, refusing to generate PSF"
                     .format(pretor_path))

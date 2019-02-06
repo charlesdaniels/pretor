@@ -1,0 +1,182 @@
+\documentclass{article}
+
+\usepackage{pretor}
+
+\title {Pretor User's Manual\\\small{For Students}}
+\author {}
+\date {}
+
+\cfoot{\texttt{pretor 0.0.1}}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+\subsection{What is Pretor?}
+
+Pretor is a grading assistant program which makes programming assignments
+easier for students and for instructors. From the perspective of student users
+of Pretor, a primary advantage is that Pretor will handle packing up your
+assignments for submission. Gone are the days of guessing what format your
+professor wants your assignment in, or debating between \texttt{tar cvfz
+project1.tgz project1/} and \texttt{tar cvfz project1.tgz project1/*}. When you
+pack your submissions with Pretor, you can rest assured that your professor
+will have no difficulty grading your code.
+
+\subsection{What is a PSF?}
+
+\textbf{PSF} stands for "Pretor Submission File". These are produced and
+interacted with by executing the \texttt{pretor-psf} command (more on that
+later). A PSF contains all the code or other materials you may have written for
+a given assignment, and also contains metadata such as your user or group ID,
+section number, course, semester, and so on. A PSF is readable as a zip file,
+so simply keeping the PSF you turned in for a given assignment is a great way
+to archive your work for future reference.
+
+\pretoremph{\textbf{Remember} while a PSF file may be read as a zip file, you
+should not attempt to create your own using a zip archiving tool - submissions
+not generated with the \texttt{pretor-psf} command will be missing information
+required for grading.}
+
+\section{Using \texttt{pretor-psf}}
+
+\subsection{Preparing Your Project}
+
+Before you can create a PSF file, you must place a \texttt{pretor.toml} file in
+the top-level directory of your project. The \texttt{pretor.toml} file contains
+information about how your PSF file should be packed. Your professor will
+provide an appropriate \texttt{pretor.toml} for each assignment.
+
+\pretoremph{\textbf{Remember} each assignment will have a different
+\texttt{pretor.toml}, be careful not to mix-and match between assignments. In
+other words, the \texttt{pretor.toml} for \textit{Assignment 1} can not be
+interchanged with the one for \textit{Assignment 2}.}
+
+As an example, consider the project structure shown in figure \ref{fig:before}.
+We would place the \texttt{pretor.toml} file in the highest directory of the
+project, as a peer to the Makefile and README, as shown in figure
+\ref{fig:after}. Keep in mind that this is simply an example for a hypothetical
+C-based project; your project structure may be different depending on your
+course, professor, language, and development environment.
+
+\begin{multicols}{2}
+
+	\begin{figure}[H]
+
+		\dirtree {%
+			.1 ./.
+			.2 Makefile.
+			.2 README.txt.
+			.2 doc/.
+			.3 manual.pdf.
+			.2 src/.
+			.3 main.c.
+			.3 utils.c.
+			.3 utils.h.
+			}
+
+		\caption{Sample project structure before adding
+		\texttt{pretor.toml}. \label{fig:before}}
+
+	\end{figure}
+
+	\begin{figure}[H]
+
+		\dirtree {%
+			.1 ./.
+			.2 Makefile.
+			.2 README.txt.
+			.2 pretor.toml.
+			.2 doc/.
+			.3 manual.pdf.
+			.2 src/.
+			.3 main.c.
+			.3 utils.c.
+			.3 utils.h.
+			}
+
+		\caption{Sample project structure after adding
+		\texttt{pretor.toml}. \label{fig:after}}
+
+	\end{figure}
+
+\end{multicols}
+
+\subsection{Generating a PSF}
+
+\pretoremph{\textbf{Hint}: when you see \texttt{monospaced text} prefixed with
+a \texttt{\$} symbol, this shows a command that you should run in a terminal.
+for example, \texttt{\$ echo hello} means you should type "echo hello" into
+your terminal and press enter.  }
+
+Now that you have a project ready to submit with a \texttt{pretor.toml} placed
+correctly in the project's root directory, let's generate a submission file.
+
+
+First, \texttt{cd} into your project directory:
+
+\texttt{\$ cd /path/to/project}
+
+Now, call \texttt{pretor-psf} to pack up your project.
+
+\texttt{\$ pretor-psf --create}
+
+An example output of this command for a user named \texttt{cad} might be:
+
+\begin{verbatim}
+INFO: creating PSF...
+INFO: reading data from .
+INFO: generating metadata...
+INFO: writing output...
+INFO: PSF written to '/home/cad/Desktop/Fall 2019-CSCE313-1-cad-Assignment 1.psf'
+\end{verbatim}
+
+\subsection{Specifying Your Group}
+
+By default, the group ID stored in your assignment file is simply the username
+you are logged into your computer with.  In the case of group projects, or if
+you need to specify a student ID which is different from the username of the
+logged in user, you may do so by specifying the \texttt{--group} flag. For
+example, if you were part of the group "group1", you might run the command:
+
+\texttt{\$ pretor-psf --create --group group1}
+
+\pretoremph{\textbf{Hint}: you can heck the group ID that generated a PSF
+file with the command \texttt{\$ pretor-psf --metadata --input SOME\_FILE.psf}}
+
+\subsection{Troubleshooting}
+
+\subsubsection{\texttt{ERROR: '$\hdots$/pretor.toml' does not exist, refusing to generate PSF}}
+
+If you encounter this error message, then there are two possibilities:
+
+\begin{itemize}
+
+	\item You have run \texttt{pretor-psf} from the wrong directory,
+		\texttt{cd} to your project directory and try again.
+
+	\item You forgot to add an appropriate \texttt{pretor.toml} to your
+		project directory.
+
+\end{itemize}
+
+\subsubsection{\texttt{ERROR: $\hdots$ was not specified.}}
+
+This error message suggests that your \texttt{pretor.toml} file is present, but
+may be missing information. Make sure that you are using the
+\texttt{pretor.toml} provided by your professor, and that you have followed any
+special instructions your professor may have provided.
+
+\subsubsection{\texttt{ERROR: output file '$\hdots$' exists, refusing to overwrite}}
+
+This error message indicates that the target output file that
+\texttt{pretor-psf} would generate already exists. If you definitely want to
+replace this file, you can either move or delete it, or you can use the
+\texttt{--force} flag to \texttt{pretor-psf}, which will cause it to overwrite
+the file.
+
+\end{document}
