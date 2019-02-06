@@ -1,3 +1,6 @@
+# Copyright 2019 Charles A Daniels
+# Distributed under the GNU GPLv3 License (https://www.gnu.org/licenses/gpl.txt)
+
 import argparse
 import csv
 import io
