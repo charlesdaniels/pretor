@@ -1,0 +1,5 @@
+To compile this program run "make"
+
+To run this program, run "./helloprog"
+
+To clean up, run "make clean"

@@ -1,5 +1,0 @@
-course = "CSCE101"
-assignment = "Assignment 1"
-section = 2
-semester = "Fall 2019"
-exclude = ["ignore*"]

@@ -1,0 +1,4 @@
+assignment = "Assignment 1"
+section = 2
+semester = "Spring 1973"
+exclude = ["*.o"]
