@@ -13,6 +13,7 @@ under the GPLv3 license.
 <!-- vim-markdown-toc GFM -->
 
 * [Overview](#overview)
+* [Documentation](#documentation)
 
 <!-- vim-markdown-toc -->
 
@@ -35,6 +36,11 @@ Pretor offers the following key features:
 
 * Plugin system to allow pre-packing validation, and extensions to the grading
   REPL. ([WiP](https://github.com/HeRCLab/pretor/issues?q=is%3Aissue+is%3Aopen+label%3A%22plugin+system%22))
+
+## Documentation
+
+* [Student's Manual](manual/student_manual.pdf)
+* [Instructor's Manual](manual/instructor_manual.pdf)
 
 
 ----
