@@ -1,4 +1,5 @@
 assignment = "Assignment 1"
 section = 2
 semester = "Spring 1973"
+course = "ABC123"
 exclude = ["*.o"]
