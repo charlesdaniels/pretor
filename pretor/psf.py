@@ -257,7 +257,12 @@ def psf_cli():
         sys.exit(1)
 
     psf = PSF()
-    psf.load_from_archive(args.input)
+    try:
+        psf.load_from_archive(args.input)
+    except Exception as e:
+        util.log_exception(e)
+        logging.error("failed to load PSF")
+        sys.exit(1)
 
     if args.summarize:
         sys.stdout.write(psf.generate_tree())
