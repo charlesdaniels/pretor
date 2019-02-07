@@ -219,11 +219,13 @@ def psf_cli():
         psf.metadata["group"] = args.group
         psf.metadata["course"] = args.course
         psf.metadata["timestamp"] = datetime.datetime.now()
+        psf.metadata["pretor_version"] = constants.version
 
         psf.forensic["hostname"] = socket.gethostname()
         psf.forensic["timestamp"] = datetime.datetime.now()
         psf.forensic["user"] = getpass.getuser()
         psf.forensic["source_dir"] = args.source
+        psf.forensic["pretor_version"] = constants.version
 
         # write output file
         if args.name is None:
