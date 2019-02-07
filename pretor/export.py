@@ -94,12 +94,13 @@ def get_fields(psf_obj):
         group = psf_obj.metadata["group"]
 
     feedback = ""
-    if "feedback" in psf_obj.metadata:
-        feedback = psf_obj.metadata["feedback"]
 
     score = 0
     if psf_obj.is_graded():
-        score = psf_obj.get_grade_rev().grade.get_score() * 100.0
+        grade_obj = psf_obj.get_grade_rev().grade
+        score = grade_obj.get_score() * 100.0
+        feedback = grade_obj.feedback
+
     else:
         feedback += "\nNo grade has been recorded for this assignment."
 
