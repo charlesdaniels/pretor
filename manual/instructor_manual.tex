@@ -14,5 +14,310 @@
 
 \tableofcontents
 
+\chapter{Introduction}
+
+\section{What is Pretor?}
+
+Pretor is an automated "grading assistant". It is a program which can help you
+manage your student's submissions, your grades and feedback, and enable you to
+easily create automation. There are several ways to use Pretor...
+
+\begin{enumerate}[i.]
+
+	\item As a tool for facilitating manual grading. In it's default state,
+		Pretor will manage student submissions, allow you to interact
+		them in a Bash shell, record your scores in a simple TOML
+		format, archive your grades and feedback for posterity, and
+		export a spreadsheet you can upload into your university's LMS.
+
+	\item As a platform for machine-assisted grading. It's easy to write
+		your own plugins or other tools; you can then use Pretor as a
+		tool to interactively orchestrate your automation.
+
+	\item As a library for fully-automated grading. Pretor provides
+		powerful primitives that could be used as the basis for an
+		unattended grading system. The interactive grading REPL also
+		supports the execution of script files, allowing it to be run
+		in a headless unattended mode.
+
+\end{enumerate}
+
+There are three major components of Pretor:
+
+\paragraph{\texttt{pretor-psf}} is used by students to generate PSFs (Pretor
+Submission Files), which they can submit through whatever mechanism you find
+appropriate.
+
+\paragraph{\texttt{pretor-grade}} implements an interactive REPL that enables a
+grader to efficiently iterate through many PSFs in sequence.
+\texttt{pretor-grade} ultimately produces more PSFs as output, which have the
+grades and other feedback the grader assigns "burned in" to them.
+
+\paragraph{\texttt{pretor-export}} is a tool which operates on the PSFs
+produced by \texttt{pretor-grade} and generates output files that can be read
+by humans, or imported by an LMS for bulk grading.
+
+\section{Understanding the Pretor Data Model}
+
+\begin{figure}[H]
+
+	\centering
+
+	\resizebox{0.8\textwidth}{!}{\digraph{abc}{
+		rankdir=LR
+		Grade -> Assignment;
+		Assignment -> Course;
+		Course -> Assignment;
+		PSF->Revision;
+		Revision->Grade;
+		PSF -> "Parent Revision";
+		"Parent Revision" -> Revision;
+	}}
+
+	\caption{High-level overview of the Pretor data model
+	\label{fig:datamodel}}
+
+\end{figure}
+
+Understanding Pretor's data model is critical to make efficient use of its
+features. Fortunately, Pretor has a relatively simple data model that aligns
+closely with how courses, grades, and submissions are intuitively reasoned
+about.
+
+\begin{itemize}
+
+	\item A PSF contains one or more revisions.
+
+	\item A revision may contain zero or one grades.
+
+	\item A grade is associated with an assignment.
+
+	\item An assignment is associated with a course.
+
+	\item A course is associated with one or more assignments.
+
+\end{itemize}
+
+\pretoremph{\textbf{Aside}: for technical reasons, all PSF files contain
+serialized copies of the assignment and course information for each grade they
+contain. This is because a grade is meaningless without a rubric (to weight
+each category score), and a course (to determine the weight of the assignment
+overall).}
+
+You as the instructor interact with the data model in several ways. One
+important way is by writing a \textbf{course definition file}, which defines
+the set of assignments in your course and their relative weights, as well as
+the rubric categories for each assignment. This is used by
+\texttt{pretor-grade} to compute the scores for each assignment you grade, and
+by \texttt{pretor-export} to generate appropriate score values.
+
+You will also interact with the data model by grading assignments. Each time
+you grade an assignment, you are creating a \textbf{revision} in the PSF the
+student turned in, creating a \textbf{grade}, and attaching the grade to the
+revision.
+
+\pretoremph{\textbf{Key Concept}: Pretor has it's own internal revision control
+system. Student-generated PSFs contain an initial "submission" revision. When
+you grade a PSF, you create a "grade" revision, which can include both changes
+to score or other metadata, as well as changes to the student's submitted code.
+This is valuable because it makes it easy to track changes made to get student
+code to compile, and allows you to make in-line comments within the student's
+code. You can even revise an existing grade revision later if you realize you
+made a mistake, which would create a third revision. Arbitrarily many grade
+revisions may be made.}
+
+\section{Pretor Workflow}
+
+Using Pretor is straightforward, barring additions made by third-party plugins,
+a typical Pretor grading workflow looks like this:
+
+\begin{enumerate}
+
+	\item Download PSFs for a specific assignment from your institution's
+		LMS
+
+	\item Run \texttt{pretor-grade} on the downloaded files, assigning a
+		grade to each, this produces more PSFs which contain both the
+		student's original submission and your modifications and
+		feedback
+
+	\item Run \texttt{pretor-export} on the PSFs generated in the previous
+		steps to generate a CSV file appropriate for upload into your
+		LMS
+
+\end{enumerate}
+
+\chapter{Grading With Pretor}
+
+\section{Grading Basics}
+
+You can begin an interactive grading session with the command
+\texttt{pretor-grade}. \texttt{pretor-grade} has many useful parameters you
+should explore\footnote{see \texttt{pretor-grade --help}}, but the most
+important are \texttt{--ingest}, \texttt{--outputdir}, and
+\texttt{--coursepath}.
+
+\paragraph{\texttt{--ingest}} is used to specify a directory where you have
+downloaded your PSFs. This directory is searched recursively for
+\texttt{*.psf}, all of which are loaded into your grading REPL before it
+begins. You can also ingest PSFs after launching via the \texttt{ingest}
+command.
+
+\paragraph{\texttt{--outputdir}} when you finish grading an assignment and mark
+it as finalized, the resulting PSF will be stored in this directory. If
+unspecified, they'll be placed in your working directory.
+
+\paragraph{\texttt{--coursedir}} specifies the directory where your course
+definition file(s) are stored. When you begin grading a PSF, the course name
+and assignment name specified in the submission's \texttt{pretor.toml} are
+looked up by recursive search through every TOML in your configured coursedir.
+When a matching file is found, it is loaded and used to pre-populate the
+\texttt{grade.toml} that you will use to enter your scores. If you don't
+specify this, your working directory will be used.
+
+You should be greeted by a prompt that looks like this:
+
+\begin{verbatim}
+PRETOR version 0.0.1 interactive grading shell.
+grader>
+\end{verbatim}
+
+You can enter the \texttt{help} command here to see a list of all commands
+available in the REPL, and \texttt{help <command name>} to see documentation
+for a specific command.
+
+While there are many useful commands available, the most essential are:
+
+\paragraph{\texttt{loaded}} displays a list of PSF files that have been loaded
+
+\paragraph{\texttt{current}} show information about the PSF you are working on
+right now
+
+\paragraph{\texttt{next}} load the next un-graded PSF that is loaded
+
+\paragraph{\texttt{interact}} drop to a Bash shell to grade the PSF
+
+\paragraph{\texttt{showgrade}} show the score card for the current PSF
+
+\paragraph{\texttt{finalize}} save your changes to the PSF and write it out
+into the configured output directory
+
+With only these commands, you can perform all grading tasks with Pretor.
+
+Let's look at an example grading session with Pretor:
+
+\begin{verbatim}
+$ pretor-grade --ingest submissions
+INFO: Loading PSF file 'submissions/Spring 1973-ABC123-2-jsmith-Assignment 1.psf'
+INFO: Loading PSF file 'submissions/Spring 1973-ABC123-2-jdeer-Assignment 1.psf'
+INFO: Loading PSF file 'submissions/Spring 1973-ABC123-2-jdoe-Assignment 1.psf'
+PRETOR version 0.0.1 interactive grading shell.
+grader> loaded
+       0: Spring 1973-ABC123-2-jsmith-Assignment 1.psf
+       1: Spring 1973-ABC123-2-jdeer-Assignment 1.psf
+       2: Spring 1973-ABC123-2-jdoe-Assignment 1.psf
+       grader> next
+<PSF ID=UUID('7c6f7597-aba0-43bd-bee6-a829943bfcd7')>
+semester      Spring 1973
+section       2
+assignment    Assignment 1
+group         jsmith
+course        ABC123
+timestamp     2019-02-06 19:30:33.046311
+archive_name  submissions/Spring 1973-ABC123-2-jsmith-Assignment 1.psf
+PSF has NOT been graded
+grader> interact
+INFO: dropping you to a shell: bash --norc
+grading Assignment 1 by jsmith $ tree
+.
+├── grade.toml
+└── submission
+    ├── doc
+    │   └── HOWTO.txt
+    ├── hello.c
+    ├── Makefile
+    ├── pretor.toml
+    ├── util.c
+    └── util.h
+
+2 directories, 7 files
+grading Assignment 1 by jsmith $ cat grade.toml
+feedback = ""
+bonus_multiplier = 0.0
+bonus_marks = 0
+bonus_score = 0.0
+penalty_multiplier = 0.0
+penalty_marks = 0
+penalty_score = 0.0
+assignment_name = "Assignment 1"
+
+[categories]
+correctness = 70
+style = 30
+
+\end{verbatim}
+
+The \texttt{grade.toml} file is perhaps the most important thing to notice
+here. This is how you input the grade you would like to assign. When you
+interact with a PSF for the first time, this file is populated with the maximum
+values for each category as determined by your course definition file. In other
+words, every submission starts out with a 100\% score, and modifying the values
+in the \texttt{[categories]} section allows you to change the submission's
+score.
+
+\begin{verbatim}
+grading Assignment 1 by jsmith $ exit
+exit
+INFO: shell session terminated
+grader> showgrade
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  70     70         100.00%
+style        30     30         100.00%
+
+OVERALL MARKS: 100
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 100.00%
+
+OVERALL SCORE: 100.00%
+
+grader> finalize
+INFO: writing to 'Spring 1973-ABC123-2-jsmith-Assignment 1.psf'
+grader> exit
+$ pretor-psf --scorecard --input Spring\ 1973-ABC123-2-jsmith-Assignment\ 1.psf
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  70     70         100.00%
+style        30     30         100.00%
+
+OVERALL MARKS: 100
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 100.00%
+
+OVERALL SCORE: 100.00%
+
+\end{verbatim}
+
+Notice that the assigned grade is saved out to disk as soon as
+\texttt{finalize} is issued, and can be retrieved later using
+\texttt{pretor-psf}.
+
+Now consider an example where we have graded several PSFs already, and want to
+see the overall score on each. For this, we can use the \texttt{pretor-export}
+command:
+
+\begin{verbatim}
+$ ls
+ coursedefs        'Spring 1973-ABC123-2-jdeer-Assignment 1.psf'    submissions
+ README.md         'Spring 1973-ABC123-2-jdoe-Assignment 1.psf'
+ sample_solutions  'Spring 1973-ABC123-2-jsmith-Assignment 1.psf'
+ $ pretor-export --input '*.psf' --table
+Spring 1973  ABC123  2  jsmith  90
+Spring 1973  ABC123  2  jdeer   50
+Spring 1973  ABC123  2  jdoe    90  submitted late, -10%
+\end{verbatim}
+
 
 \end{document}
