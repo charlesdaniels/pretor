@@ -562,9 +562,6 @@ output directory. The output directory can be changed with 'set outputdir
         if psfno in this.symtab["#finalized"]:
             logging.warning("PSF {} has been marked as finalized".format(psfno))
 
-        print(psfno)
-        print(this.symtab["#psf"])
-        print(len(this.symtab["#psf"]))
         if (psfno > (len(this.symtab["#psf"]) - 1)) or (psfno < 0):
             this.fail("PSF {} does not identify a loaded PSF".format(psfno))
             return

@@ -358,6 +358,18 @@ class Grade:
 
         grade_data = toml.load(path)
 
+        this.load_data(grade_data, path)
+
+    def load_data(this, grade_data, path="<argument>"):
+        """load_data
+
+        Populate the contents of this Grade object from an already loaded dict.
+
+        :param this:
+        :param grade_data:
+        :param path:
+        """
+
         # try to load optional fields
         try:
             if "feedback" in grade_data:

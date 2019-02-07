@@ -474,6 +474,7 @@ class PSF:
                     rev_data = f.getinfo("revisions/{}/rev_data.toml".format(revID))
                     rev_data = f.read(rev_data)
                     rev_data = toml.loads(rev_data.decode("utf-8"))
+                    logging.debug("loaded revision data successfully")
                 except KeyError:
                     raise PSFInvalid(
                         "Invalid archive {}, pretor_data.toml specifies nonexistant revID {}"
@@ -491,6 +492,7 @@ class PSF:
                     grade_data = f.getinfo("revisions/{}/grade.toml".format(revID))
                     grade_data = f.read(grade_data)
                     grade_data = toml.loads(grade_data.decode("utf-8"))
+                    logging.debug("loaded grade data successfully")
                 except KeyError as e:
                     # no grade specified
                     logging.debug("no grade.toml: {}".format(e))
@@ -505,6 +507,7 @@ class PSF:
                     course_data = f.getinfo("revisions/{}/course.toml".format(revID))
                     course_data = f.read(course_data)
                     course_data = toml.loads(course_data.decode("utf-8"))
+                    logging.debug("loaded course data successfully")
                 except KeyError:
                     # no grade specified
                     logging.debug("no course data specified")
@@ -538,6 +541,9 @@ class PSF:
                 if grade_data is not None:
                     grade_obj = grade.Grade(
                         course_obj.assignments[grade_data["assignment_name"]])
+                    grade_obj.load_data(grade_data)
+                    logging.debug("generated grade object: {}"
+                            .format(grade_obj))
 
                 # validate the revision data
                 for key in ["ID", "contents"]:
@@ -552,7 +558,10 @@ class PSF:
                     rev.parentID = rev_data["parentID"]
                 this.revisions[revID] = rev
 
+                logging.debug("generated revision object: {}".format(rev))
+
                 rev.grade = grade_obj
+
 
                 # load revision files from archive
                 for path in rev_data["contents"]:
