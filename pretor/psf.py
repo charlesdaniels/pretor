@@ -1,5 +1,5 @@
 # Copyright 2019 Charles A Daniels
-# Distributed under the GNU GPLv3 License (https://www.gnu.org/licenses/gpl.txt)
+# Distributed under the GNU AGPLv3 License (https://www.gnu.org/licenses/agpl.txt)
 
 import argparse
 import copy

@@ -45,5 +45,5 @@ Pretor offers the following key features:
 
 ----
 
-Copyright (c) 2019 Charles A Daniels, made available under the GNU GPLv3
+Copyright (c) 2019 Charles A Daniels, made available under the GNU AGPLv3
 license. See [LICENSE](./LICENSE) and [COPYING](./COPYING).
