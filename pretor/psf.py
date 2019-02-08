@@ -421,7 +421,7 @@ class PSF:
             if exclude or child.is_dir():
                 continue
 
-            with open(child, 'rb') as f:
+            with open(str(child), 'rb') as f:
                 rev.put_file(
                         child.relative_to(path),
                         f.read())
