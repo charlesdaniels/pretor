@@ -432,7 +432,7 @@ class PSF:
 
         archive_path = pathlib.Path(archive_path)
 
-        with zipfile.ZipFile(archive_path, 'r') as f:
+        with zipfile.ZipFile(str(archive_path), 'r') as f:
 
             # load forensic data from PSF
             try:
@@ -611,7 +611,7 @@ class PSF:
         logging.debug("saving PSF {} to {}".format(this, path))
 
         path = str(pathlib.Path(path))
-        with zipfile.ZipFile(path, "w") as f:
+        with zipfile.ZipFile(str(path), "w") as f:
 
             # write pretor_data.toml
             pretor_data = {}
