@@ -7,8 +7,23 @@ python:
   - "pypy3.5"
 # command to install dependencies
 install:
-  - pip3 install black
   - python3 setup.py install
+
 script:
   - ./scripts/run_tests.sh
   - ./scripts/run_linter.sh
+
+
+stages:
+    - test
+    - name: lint
+      if: python = "3.7"
+
+jobs:
+    include:
+        - stage: test
+          script: ./scripts/run_tests.sh
+        - stage: lint
+          script:
+              - pip install black
+              - ./scripts/run_linter.sh
