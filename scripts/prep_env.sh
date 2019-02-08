@@ -17,6 +17,7 @@ fi
 
 VENVDIR="$(mktemp -d)"
 
-virtualenv --python="$(which python3)" "$VENVDIR" 1>&2
+echo "creating virtualenv... " 1>&2
+virtualenv --python="$(which python3)" "$VENVDIR" 2>&1 > /dev/null
 
 echo "$VENVDIR"

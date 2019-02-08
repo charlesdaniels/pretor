@@ -24,7 +24,7 @@ from . import util
 from . import course
 from . import grade
 
-def psf_cli():
+def psf_cli(argv = None):
     parser = argparse.ArgumentParser(
             "Generate, inspect, and extract PSF (Pretor Submission File) archives")
 
@@ -134,7 +134,11 @@ def psf_cli():
             help="Generate a scorecard for the canonical grade" +
             "revision, or for the one specified as an argument to --revid.")
 
-    args = parser.parse_args()
+    args = None
+    if argv is not None:
+        args = parser.parse_args(argv)
+    else:
+        args = parser.parse_args()
 
     if args.debug:
         util.setup_logging(logging.DEBUG)
