@@ -7,6 +7,8 @@ python:
   - "pypy3.5"
 # command to install dependencies
 install:
+  - pip3 install flake8
   - python3 setup.py install
 script:
   - ./scripts/run_tests.sh
+  - ./scripts/run_linter.sh
