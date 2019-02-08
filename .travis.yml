@@ -9,11 +9,6 @@ python:
 install:
   - python3 setup.py install
 
-script:
-  - ./scripts/run_tests.sh
-  - ./scripts/run_linter.sh
-
-
 stages:
     - test
     - name: lint
