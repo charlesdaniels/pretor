@@ -246,7 +246,8 @@ def psf_cli(argv = None):
             args.destination = "../"
 
         output_path = pathlib.Path(args.destination) / args.name
-        output_path = output_path.resolve()
+        if output_path.exists:
+            output_path = output_path.resolve()
 
         logging.info("writing output... ")
         if not output_path.exists() or args.force:
