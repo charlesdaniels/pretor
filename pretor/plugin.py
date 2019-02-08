@@ -18,38 +18,68 @@ from . import constants
 This module handles pretor plugins.
 """
 
+
 def plugin_cli():
     """plugin_cli"""
 
-    parser = argparse.ArgumentParser("""CLI tool for displaying information
+    parser = argparse.ArgumentParser(
+        """CLI tool for displaying information
 about loaded Pretor plugins. This tool is primarily for debugging Pretor
 installations, and will likely only be of use to system administrators
-and plugin developers.""")
+and plugin developers."""
+    )
 
-    parser.add_argument("--version", action="version",
-            version=constants.version)
+    parser.add_argument("--version", action="version", version=constants.version)
 
-    parser.add_argument("--debug", "-d", action="store_true", default=False,
-            help="Log debugging output to the console.")
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
 
-    parser.add_argument("--debugload", "-L", action="store_true", default=False,
-            help="If a plugin fails to import, drop to a PDB shell.")
+    parser.add_argument(
+        "--debugload",
+        "-L",
+        action="store_true",
+        default=False,
+        help="If a plugin fails to import, drop to a PDB shell.",
+    )
 
-    parser.add_argument("--plugin_dir", "-D", default="./",
-            help="Specify location where pretor plugins are stored. " +
-            "(default: ./)")
+    parser.add_argument(
+        "--plugin_dir",
+        "-D",
+        default="./",
+        help="Specify location where pretor plugins are stored. " + "(default: ./)",
+    )
 
     action = parser.add_mutually_exclusive_group(required=True)
 
-    action.add_argument("--pdb", "-p", default=False, action="store_true",
-            help="Drop to PDB shell after loading plugins.")
+    action.add_argument(
+        "--pdb",
+        "-p",
+        default=False,
+        action="store_true",
+        help="Drop to PDB shell after loading plugins.",
+    )
 
-    action.add_argument("--list", "-l", default=False, action="store_true",
-            help="List all loaded plugins")
+    action.add_argument(
+        "--list",
+        "-l",
+        default=False,
+        action="store_true",
+        help="List all loaded plugins",
+    )
 
-    action.add_argument("--info", "-i", default=None, nargs=1,
-            help="Display the description and other information for the " +
-            "specified plugin.")
+    action.add_argument(
+        "--info",
+        "-i",
+        default=None,
+        nargs=1,
+        help="Display the description and other information for the "
+        + "specified plugin.",
+    )
 
     args = parser.parse_args()
 
@@ -65,12 +95,19 @@ and plugin developers.""")
         pdb.set_trace()
 
     elif args.list:
-        print(tabulate.tabulate(
-            [(
-                    k,
-                    format_version(g.plugins[k].pretor_plugin_version),
-                    ', '.join(g.plugins[k].pretor_plugin_hooks.keys()))
-             for k in g.plugins], tablefmt="plain"))
+        print(
+            tabulate.tabulate(
+                [
+                    (
+                        k,
+                        format_version(g.plugins[k].pretor_plugin_version),
+                        ", ".join(g.plugins[k].pretor_plugin_hooks.keys()),
+                    )
+                    for k in g.plugins
+                ],
+                tablefmt="plain",
+            )
+        )
 
     elif args.info is not None:
         args.info = args.info[0]
@@ -80,12 +117,14 @@ and plugin developers.""")
 
         plugin = g.plugins[args.info]
 
-        print("{}, version {}".format(
-                plugin.pretor_plugin_name,
-                format_version(plugin.pretor_plugin_version)))
+        print(
+            "{}, version {}".format(
+                plugin.pretor_plugin_name, format_version(plugin.pretor_plugin_version)
+            )
+        )
 
         print("")
-        print("hooks: {}".format(', '.join(plugin.pretor_plugin_hooks.keys())))
+        print("hooks: {}".format(", ".join(plugin.pretor_plugin_hooks.keys())))
         print("")
 
         if hasattr(plugin, "pretor_plugin_author"):
@@ -102,6 +141,7 @@ and plugin developers.""")
             print("")
             print("LICENSE:")
             print(plugin.pretor_plugin_license)
+
 
 def format_version(v):
     """format_version
@@ -159,14 +199,14 @@ def validate_plugin(obj):
 
     for attr in required_attrs:
         if not hasattr(obj, attr):
-            raise KeyError("plugin object missing required attribute {}"
-                    .format(attr))
+            raise KeyError("plugin object missing required attribute {}".format(attr))
 
-    if not (len(obj.pretor_plugin_version) in [3,4]):
+    if not (len(obj.pretor_plugin_version) in [3, 4]):
         raise ValueError("plugin object has invalid version field")
 
     if not hasattr(obj.pretor_plugin_hooks, "__getitem__"):
         raise TypeError("plugin object hooks are not subscriptable")
+
 
 def load_plugins(plugin_dir: pathlib.Path, debugfail=False):
     """load_plugins
@@ -202,15 +242,13 @@ def load_plugins(plugin_dir: pathlib.Path, debugfail=False):
         plugin_name = str(plugin_dir.name)
         module_name = "{}.pretorplugin".format(plugin_name)
 
-        logging.debug("considering plugin {} from {}"
-                .format(plugin_name, plugin_file))
+        logging.debug("considering plugin {} from {}".format(plugin_name, plugin_file))
 
         plugin_object = None
         try:
 
             # import the plugin module
-            spec = importlib.util.spec_from_file_location(
-                    module_name, plugin_file)
+            spec = importlib.util.spec_from_file_location(module_name, plugin_file)
             plugin = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(plugin)
 
@@ -222,8 +260,7 @@ def load_plugins(plugin_dir: pathlib.Path, debugfail=False):
 
         except Exception as e:
             util.log_exception(e)
-            logging.warning("failed to load plugin from file {}"
-                    .format(plugin_file))
+            logging.warning("failed to load plugin from file {}".format(plugin_file))
             if debugfail:
                 logging.info("debugfail=True, dropping to PDB shell.")
                 pdb.set_trace()
@@ -232,4 +269,3 @@ def load_plugins(plugin_dir: pathlib.Path, debugfail=False):
         logging.debug("successfully imported plugin")
 
         g.plugins[plugin_name] = plugin_object
-

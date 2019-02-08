@@ -24,6 +24,7 @@ from . import grade
 from . import util
 from . import psf
 
+
 class REPL(cmd.Cmd):
     """REPL
 
@@ -101,7 +102,7 @@ class REPL(cmd.Cmd):
 Return a list of previously entered commands
         """
 
-        this.symtab["#result"] = '\n'.join(this.history)
+        this.symtab["#result"] = "\n".join(this.history)
 
     def do_EOF(this, arg):
         "Exit when EOF is read"
@@ -115,12 +116,13 @@ Return a list of previously entered commands
 Set a symbol in the REPL to the specified value. Result is set to to as one.
         """
 
-        if not this.check_arg(2): return
+        if not this.check_arg(2):
+            return
 
         symbolname = this.symtab["#argv"][1]
         value = this.symtab["#argv"][2]
 
-        if symbolname.startswith('#'):
+        if symbolname.startswith("#"):
             this.fail("may not override internal symbols")
             return
         else:
@@ -134,7 +136,8 @@ Set a symbol in the REPL to the specified value. Result is set to to as one.
 Get the value of a symbol if it exists.
         """
 
-        if not this.check_arg(1): return
+        if not this.check_arg(1):
+            return
 
         symbolname = this.symtab["#argv"][1]
 
@@ -153,7 +156,8 @@ TARGET may be either a directory, which will be searched recursively for PSF
 files, or it may be a single PSF file.
         """
 
-        if not this.check_arg(1): return
+        if not this.check_arg(1):
+            return
 
         target = pathlib.Path(this.symtab["#argv"][1])
 
@@ -208,18 +212,15 @@ Display the assigned grade for the PSF, if any
             return
 
         if this.symtab["revision"] != "":
-                rev = current.get_revision(this.symtab["revision"])
-                if rev.grade is None:
-                    this.symtab["#status"] = False
-                    this.symtab["#error"] = \
-                            "Revision '{}' not graded".format(rev)
+            rev = current.get_revision(this.symtab["revision"])
+            if rev.grade is None:
+                this.symtab["#status"] = False
+                this.symtab["#error"] = "Revision '{}' not graded".format(rev)
 
-                else:
-                    this.symtab["#result"] = rev.grade.generate_scorecard()
+            else:
+                this.symtab["#result"] = rev.grade.generate_scorecard()
         else:
-            this.symtab["#result"] = \
-                    current.get_grade_rev().grade.generate_scorecard()
-
+            this.symtab["#result"] = current.get_grade_rev().grade.generate_scorecard()
 
     def do_forensic(this, arg):
         """forensic
@@ -279,21 +280,24 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             else:
                 # case where we have a known revision, but it dosen't
                 # exist yet
-                logging.info("creating revision '{}'"
-                        .format(this.symtab["revision"]))
+                logging.info("creating revision '{}'".format(this.symtab["revision"]))
                 grade_revision = current.create_revision(
-                        this.symtab["revision"], this.symtab["base_revision"])
+                    this.symtab["revision"], this.symtab["base_revision"]
+                )
 
         elif current.is_graded():
-            logging.info("{} has already been graded. ".format(current) +
-                    "If this is surprising, you may want to check for " +
-                    "tampering.")
+            logging.info(
+                "{} has already been graded. ".format(current)
+                + "If this is surprising, you may want to check for "
+                + "tampering."
+            )
             grade_revision = current.create_grade_revision()
             this.symtab["revision"] = grade_revision.ID
 
         else:
-            grade_revision = current.create_revision("graded_0",
-                    this.symtab["base_revision"])
+            grade_revision = current.create_revision(
+                "graded_0", this.symtab["base_revision"]
+            )
             this.symtab["revision"] = grade_revision.ID
 
         # Unpack the PSF into the workdir
@@ -301,9 +305,11 @@ Begin an interactive shell session in the current PSF so that it may be graded.
 
         # make sure the metadata we'll need is present
         metadata = current.metadata
-        metadata_ok = ("assignment" in metadata) and \
-            ("group" in metadata) and \
-            ("course" in metadata)
+        metadata_ok = (
+            ("assignment" in metadata)
+            and ("group" in metadata)
+            and ("course" in metadata)
+        )
 
         if not metadata_ok:
             logging.warning("'{}' missing metadata".format(current))
@@ -321,8 +327,7 @@ Begin an interactive shell session in the current PSF so that it may be graded.
                         courses[c.name] = c
                     except Exception as e:
                         util.log_exception(e)
-                        logging.warning("failed to load course from '{}'"
-                                .format(p))
+                        logging.warning("failed to load course from '{}'".format(p))
                 else:
                     for fp in p.glob("**/*.toml"):
                         try:
@@ -330,20 +335,29 @@ Begin an interactive shell session in the current PSF so that it may be graded.
                             courses[c.name] = c
                         except Exception as e:
                             util.log_exception(e)
-                            logging.warning("failed to load course from '{}'"
-                                    .format(fp))
-
+                            logging.warning(
+                                "failed to load course from '{}'".format(fp)
+                            )
 
             # Create a Grade object and associate it with this revision
             grade_obj = None
             if metadata_ok:
                 if metadata["course"] not in courses:
-                    logging.error("no course found in '{}': '{}'"
-                            .format(this.symtab["coursepath"], metadata["course"]))
+                    logging.error(
+                        "no course found in '{}': '{}'".format(
+                            this.symtab["coursepath"], metadata["course"]
+                        )
+                    )
 
-                elif metadata["assignment"] not in courses[metadata["course"]].assignments:
-                    logging.error("no assignment '{}' in course '{}'"
-                            .format(metadata["assignment"], metadata["course"]))
+                elif (
+                    metadata["assignment"]
+                    not in courses[metadata["course"]].assignments
+                ):
+                    logging.error(
+                        "no assignment '{}' in course '{}'".format(
+                            metadata["assignment"], metadata["course"]
+                        )
+                    )
 
                 elif grade_revision.grade is not None:
                     # this case should never occur
@@ -351,13 +365,16 @@ Begin an interactive shell session in the current PSF so that it may be graded.
 
                 else:
                     grade_obj = grade.Grade(
-                            courses[metadata["course"]].assignments[metadata["assignment"]])
+                        courses[metadata["course"]].assignments[metadata["assignment"]]
+                    )
                     grade_revision.grade = grade_obj
 
         grade_obj = grade_revision.grade
 
         if grade_obj is None:
-            logging.warning("unable to instantiate new grade, PSF may have missing or invalid metadata")
+            logging.warning(
+                "unable to instantiate new grade, PSF may have missing or invalid metadata"
+            )
 
         else:
             # write out grade file
@@ -370,14 +387,14 @@ Begin an interactive shell session in the current PSF so that it may be graded.
 
         if metadata_ok:
             env["PS1"] = "grading {} by {} $ ".format(
-                    current.metadata["assignment"],
-                    current.metadata["group"])
+                current.metadata["assignment"], current.metadata["group"]
+            )
         else:
             env["PS1"] = "grading [MISSING METADATA] $ "
 
-        logging.info("dropping you to a shell: {}".format(' '.join(shell)))
+        logging.info("dropping you to a shell: {}".format(" ".join(shell)))
         try:
-            p = subprocess.Popen(shell, env = env, cwd = workdir)
+            p = subprocess.Popen(shell, env=env, cwd=workdir)
             status = p.wait()
         except Exception as e:
             util.log_exception(e)
@@ -412,7 +429,6 @@ HINT: you can change your working revision via 'set revision REVID'.
 
         this.symtab["#result"] = s
 
-
     def do_shell(this, arg):
         """shell COMMAND
 
@@ -422,8 +438,9 @@ command with '!'. Users are encouraged not to try to be clever.
 Note that commands like 'cd' will not affect the REPL.
         """
 
-        this.symtab["#result"] = \
-                subprocess.check_output(["sh", "-c", arg]).decode("utf-8")
+        this.symtab["#result"] = subprocess.check_output(["sh", "-c", arg]).decode(
+            "utf-8"
+        )
 
     def do_loaded(this, arg):
         """loaded
@@ -431,7 +448,7 @@ Note that commands like 'cd' will not affect the REPL.
         Display a list of all currently loaded PSF files.
         """
 
-        if '#psf' not in this.symtab:
+        if "#psf" not in this.symtab:
             this.fail("No PSF files loaded.")
             return
 
@@ -502,7 +519,6 @@ current one has not been finalized yet.
                 this.switch_to(psfno, force)
                 break
 
-
     def do_finalize(this, arg):
         """finalize [next]
 
@@ -519,18 +535,19 @@ output directory. The output directory can be changed with 'set outputdir
         metadata_ok = True
         for key in ["semester", "course", "section", "group", "assignment"]:
             if key not in current.metadata:
-                logging.warning("{} missing metadata: '{}', using UUID"
-                        .format(this, key))
+                logging.warning(
+                    "{} missing metadata: '{}', using UUID".format(this, key)
+                )
                 metadata_ok = False
-
 
         if metadata_ok:
             name = "{}-{}-{}-{}-{}".format(
-                        current.metadata["semester"],
-                        current.metadata["course"],
-                        current.metadata["section"],
-                        current.metadata["group"],
-                        current.metadata["assignment"])
+                current.metadata["semester"],
+                current.metadata["course"],
+                current.metadata["section"],
+                current.metadata["group"],
+                current.metadata["assignment"],
+            )
 
         else:
             name = str(current.ID)
@@ -544,7 +561,6 @@ output directory. The output directory can be changed with 'set outputdir
         this.symtab["#finalized"].append(this.symtab["#current_psf"])
         this.symtab.pop("#current_psf")
 
-
     def switch_to(this, psfno, force):
         psfnow = int(psfno)
 
@@ -557,7 +573,9 @@ output directory. The output directory can be changed with 'set outputdir
                 return
 
             else:
-                logging.warning("force was specified, switching away from non-finalized PSF")
+                logging.warning(
+                    "force was specified, switching away from non-finalized PSF"
+                )
 
         if psfno in this.symtab["#finalized"]:
             logging.warning("PSF {} has been marked as finalized".format(psfno))
@@ -578,7 +596,8 @@ output directory. The output directory can be changed with 'set outputdir
 Display the interpreter's current symbol table state.
         """
         this.symtab["#result"] = tabulate.tabulate(
-                [(k, this.symtab[k]) for k in this.symtab], tablefmt="plain")
+            [(k, this.symtab[k]) for k in this.symtab], tablefmt="plain"
+        )
 
     def get_current(this):
         """get_current
@@ -617,8 +636,10 @@ Get the current PSF file, if any, return it or None if there is none.
         # This is deliberately undocumented to reduce the chance that an
         # unwitting use will activate it by mistake
 
-        logging.warning("Dropping to interactive PDB shell. If this was " +
-                "a mistake, enter 'continue' to resume the Pretor REPL.")
+        logging.warning(
+            "Dropping to interactive PDB shell. If this was "
+            + "a mistake, enter 'continue' to resume the Pretor REPL."
+        )
 
         pdb.set_trace()
 
@@ -650,7 +671,7 @@ Get the current PSF file, if any, return it or None if there is none.
         return True
 
     def default(this, line):
-        if line.startswith('#'):
+        if line.startswith("#"):
             # comment, do nothing
             pass
         elif line == "debug":
@@ -676,8 +697,7 @@ Get the current PSF file, if any, return it or None if there is none.
             super().onecmd(s)
         except Exception as e:
             util.log_exception(e)
-            this.symtab["#error"] = \
-                    "exception while processing command '{}'".format(s)
+            this.symtab["#error"] = "exception while processing command '{}'".format(s)
             this.symtab["#status"] = False
 
     def precmd(this, line):
@@ -706,11 +726,13 @@ Get the current PSF file, if any, return it or None if there is none.
     def preloop(this):
         cmd.Cmd.preloop(this)
 
+
 def signal_handler(sig, frame):
     sys.stdout.flush()
     sys.stdout.write("Caught ^C. Use ^D or 'exit' to exit\n")
     sys.stdout.write("> ")
     sys.stdout.flush()
+
 
 def launch_repl():
     """repl
@@ -718,47 +740,78 @@ def launch_repl():
     Launch the Pretor grader interactive REPL.
     """
 
-    parser = argparse.ArgumentParser("""Interactive REPL used to grade
-PSF formatted submissions.""")
+    parser = argparse.ArgumentParser(
+        """Interactive REPL used to grade
+PSF formatted submissions."""
+    )
 
-    parser.add_argument("--version", action="version",
-            version=constants.version)
+    parser.add_argument("--version", action="version", version=constants.version)
 
-    parser.add_argument("--debug", "-d", action="store_true", default=False,
-            help="Log debugging output to the console.")
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
 
-    parser.add_argument("--coursepath", "-c", default=None,
-            help="Specify the directory where course files are stored. " +
-            "If omitted, this can be set interactively via " +
-            "'set coursedir /some/path'. Note that a single course file " +
-            "may be specified instead of a directory if desired. " +
-            "Multiple files or directories may be specified, delimited with " +
-            "the ':' character")
+    parser.add_argument(
+        "--coursepath",
+        "-c",
+        default=None,
+        help="Specify the directory where course files are stored. "
+        + "If omitted, this can be set interactively via "
+        + "'set coursedir /some/path'. Note that a single course file "
+        + "may be specified instead of a directory if desired. "
+        + "Multiple files or directories may be specified, delimited with "
+        + "the ':' character",
+    )
 
-    parser.add_argument("--ingest", "-i", default=None,
-            help="Automatically ingest the PSF files from the specified " +
-            "directory. This can be done interactively via the 'ingest' " +
-            "command.")
+    parser.add_argument(
+        "--ingest",
+        "-i",
+        default=None,
+        help="Automatically ingest the PSF files from the specified "
+        + "directory. This can be done interactively via the 'ingest' "
+        + "command.",
+    )
 
-    parser.add_argument("--outputdir", "-o", default=None,
-            help="Specify the directory where finalized PSF files should " +
-            "be saved. This may be specified interactively via " +
-            "'set outputdir /some/path'. (default: ./)")
+    parser.add_argument(
+        "--outputdir",
+        "-o",
+        default=None,
+        help="Specify the directory where finalized PSF files should "
+        + "be saved. This may be specified interactively via "
+        + "'set outputdir /some/path'. (default: ./)",
+    )
 
-    parser.add_argument("--rc", "-r", type=pathlib.Path,
-            default=pathlib.Path("~/.config/pretor/rc").expanduser(),
-            help="Specify RC file to use. Each line in this file is " +
-            "executed before beginning the interactive REPL. " +
-            "(default: ~/.config/pretor/rc")
+    parser.add_argument(
+        "--rc",
+        "-r",
+        type=pathlib.Path,
+        default=pathlib.Path("~/.config/pretor/rc").expanduser(),
+        help="Specify RC file to use. Each line in this file is "
+        + "executed before beginning the interactive REPL. "
+        + "(default: ~/.config/pretor/rc",
+    )
 
-    parser.add_argument("--plugin_dir", "-p", type=pathlib.Path, default=None,
-            help="Load plugins from the specified directory before launching" +
-            " the REPL. This is in addition to any plugins specified by " +
-            "the course definition file.")
+    parser.add_argument(
+        "--plugin_dir",
+        "-p",
+        type=pathlib.Path,
+        default=None,
+        help="Load plugins from the specified directory before launching"
+        + " the REPL. This is in addition to any plugins specified by "
+        + "the course definition file.",
+    )
 
-    parser.add_argument("--no_course_plugins", "-N", default=False,
-            action="store_true", help="Don't load plugins specified by " +
-            "course definition files.")
+    parser.add_argument(
+        "--no_course_plugins",
+        "-N",
+        default=False,
+        action="store_true",
+        help="Don't load plugins specified by " + "course definition files.",
+    )
 
     args = parser.parse_args()
 
@@ -780,7 +833,7 @@ PSF formatted submissions.""")
 
     if args.rc.exists():
         logging.debug("loading RC file '{}'".format(args.rc))
-        with open(args.rc, 'r') as f:
+        with open(args.rc, "r") as f:
             for line in f:
                 the_repl.exec(line)
 

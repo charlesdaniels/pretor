@@ -13,6 +13,7 @@ from . import constants
 from . import util
 from . import psf
 
+
 def csv_line(data):
     """csv_line
 
@@ -24,6 +25,7 @@ def csv_line(data):
     writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
     writer.writerow(data)
     return output.getvalue()
+
 
 def format_moodle(psf_obj):
     """format_moodle
@@ -42,6 +44,7 @@ def format_moodle(psf_obj):
 
     record = get_record(psf_obj)
     return csv_line(record)
+
 
 def get_record(psf_obj):
     """get_record
@@ -62,10 +65,11 @@ def get_record(psf_obj):
         data["section"],
         data["group"],
         data["score"],
-        data["feedback"]
+        data["feedback"],
     ]
 
     return record
+
 
 def get_fields(psf_obj):
     """get_fields
@@ -110,31 +114,52 @@ def get_fields(psf_obj):
         "section": section,
         "group": group,
         "feedback": feedback,
-        "score": score
+        "score": score,
     }
 
+
 def export_cli():
-    parser = argparse.ArgumentParser("""
+    parser = argparse.ArgumentParser(
+        """
 A tool for exporting Pretor grades into various formats.
-""")
+"""
+    )
 
-    parser.add_argument("--version", action="version",
-            version=constants.version)
+    parser.add_argument("--version", action="version", version=constants.version)
 
-    parser.add_argument("--debug", "-d", action="store_true", default=False,
-            help="Log debugging output to the console.")
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
 
-    parser.add_argument("--input", "-i", default="./**/*.psf",
-            help="Specify glob pattern to search for PSF files to export." +
-            " (default: **/*.psf)")
+    parser.add_argument(
+        "--input",
+        "-i",
+        default="./**/*.psf",
+        help="Specify glob pattern to search for PSF files to export."
+        + " (default: **/*.psf)",
+    )
 
     format = parser.add_mutually_exclusive_group(required=True)
 
-    format.add_argument("--moodle", "-m", default=False,
-            action="store_true", help="Export to Moodle-compatible CSV")
+    format.add_argument(
+        "--moodle",
+        "-m",
+        default=False,
+        action="store_true",
+        help="Export to Moodle-compatible CSV",
+    )
 
-    format.add_argument("--table", "-t", default=False, action="store_true",
-            help="Export to human-readable plain text table")
+    format.add_argument(
+        "--table",
+        "-t",
+        default=False,
+        action="store_true",
+        help="Export to human-readable plain text table",
+    )
 
     args = parser.parse_args()
 
@@ -157,8 +182,9 @@ A tool for exporting Pretor grades into various formats.
                 sys.stdout.write(format_moodle(p))
 
         elif args.table:
-            sys.stdout.write(tabulate.tabulate(
-                [get_record(p) for p in PSFs], tablefmt="plain"))
+            sys.stdout.write(
+                tabulate.tabulate([get_record(p) for p in PSFs], tablefmt="plain")
+            )
             sys.stdout.write("\n")
 
     except Exception as e:

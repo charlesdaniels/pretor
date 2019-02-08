@@ -12,30 +12,50 @@ from . import constants
 from . import exceptions
 from . import util
 
+
 def course_cli():
     """course_cli"""
 
-    parser = argparse.ArgumentParser("""CLI tool for displaying information
+    parser = argparse.ArgumentParser(
+        """CLI tool for displaying information
 about a pretor course. This tool is primarily of use to those creating or
-modifying pretor course definitions.""")
+modifying pretor course definitions."""
+    )
 
+    parser.add_argument("--version", action="version", version=constants.version)
 
-    parser.add_argument("--version", action="version",
-            version=constants.version)
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
 
-    parser.add_argument("--debug", "-d", action="store_true", default=False,
-            help="Log debugging output to the console.")
-
-    parser.add_argument("--course", "-c", required=True, type=pathlib.Path,
-            help="Specify the course definition file to load.")
+    parser.add_argument(
+        "--course",
+        "-c",
+        required=True,
+        type=pathlib.Path,
+        help="Specify the course definition file to load.",
+    )
 
     action = parser.add_mutually_exclusive_group(required=True)
 
-    action.add_argument("--summary", "-s", default=False, action="store_true",
-            help="Display a summary of the generated course object.")
+    action.add_argument(
+        "--summary",
+        "-s",
+        default=False,
+        action="store_true",
+        help="Display a summary of the generated course object.",
+    )
 
-    action.add_argument("--rubric", "-r", default=None,
-            help="Display the rubric for the specified assignment.")
+    action.add_argument(
+        "--rubric",
+        "-r",
+        default=None,
+        help="Display the rubric for the specified assignment.",
+    )
 
     args = parser.parse_args()
 
@@ -59,6 +79,7 @@ modifying pretor course definitions.""")
     except Exception as e:
         util.log_exception(e)
         sys.exit(1)
+
 
 def load_course_definition(origin):
     """load_course_definition
@@ -94,20 +115,22 @@ def load_course_definition(origin):
 
     # validate course definition
     if "course" not in course_data:
-        raise exceptions.InvalidFile("course file '{}' missing [course]"
-                .format(path))
+        raise exceptions.InvalidFile("course file '{}' missing [course]".format(path))
 
     if "name" not in course_data["course"]:
-        raise exceptions.InvalidFile("course file '{}' specifies no name"
-                .format(path))
+        raise exceptions.InvalidFile("course file '{}' specifies no name".format(path))
 
     if len(course_data) < 2:
-        raise exceptions.InvalidFile("course file '{}' specifies no assignments"
-                .format(path))
+        raise exceptions.InvalidFile(
+            "course file '{}' specifies no assignments".format(path)
+        )
 
-    course = Course(course_data["course"]["name"], description = \
-        course_datap["course"]["description"] \
-                if "description" in course_data else "")
+    course = Course(
+        course_data["course"]["name"],
+        description=course_datap["course"]["description"]
+        if "description" in course_data
+        else "",
+    )
 
     # load each individual assignment
     for as_key in [k for k in course_data.keys() if k != "course"]:
@@ -115,16 +138,21 @@ def load_course_definition(origin):
 
         for key in ["name", "weight"]:
             if key not in as_data:
-                raise exceptions.InvalidFile(("course file '{}' malformed" +
-                        "'{}' malformed assignment with key '{}'")
-                        .format(path, as_key))
+                raise exceptions.InvalidFile(
+                    (
+                        "course file '{}' malformed"
+                        + "'{}' malformed assignment with key '{}'"
+                    ).format(path, as_key)
+                )
 
         # weights are percentages
         weight = float(as_data["weight"])
         if weight < 0 or weight > 1:
-                raise exceptions.InvalidFile(("course file '{}' malformed" +
-                        "assignment '{}': invalid weight {}")
-                        .format(path, as_data["name"], as_data["weight"]))
+            raise exceptions.InvalidFile(
+                (
+                    "course file '{}' malformed" + "assignment '{}': invalid weight {}"
+                ).format(path, as_data["name"], as_data["weight"])
+            )
 
         # pop out name and weight, leaving us just the categories
         name = as_data["name"]
@@ -132,8 +160,8 @@ def load_course_definition(origin):
         if "description" in as_data:
             description = as_data["description"]
             as_data.pop("description")
-        as_data.pop('name')
-        as_data.pop('weight')
+        as_data.pop("name")
+        as_data.pop("weight")
 
         # validate that all the category marks are valid
         for cat_name in as_data:
@@ -142,22 +170,26 @@ def load_course_definition(origin):
                 assert as_data[cat_name] >= 0
             except Exception as e:
 
-                raise exceptions.InvalidFile(("course file '{}' malformed" +
-                    "assignment '{}' category '{}' invalid marks: {}")
-                        .format(path, as_data["name"],
-                            cat_name, as_Dta[cat_name]))
+                raise exceptions.InvalidFile(
+                    (
+                        "course file '{}' malformed"
+                        + "assignment '{}' category '{}' invalid marks: {}"
+                    ).format(path, as_data["name"], cat_name, as_Dta[cat_name])
+                )
 
         # XXX: this double linking might confuse the garbage collector, should
         # investigate if there are any negative implications
         assignment = Assignment(
-                course=course,
-                name=name,
-                weight=weight,
-                categories=as_data,
-                description=description)
+            course=course,
+            name=name,
+            weight=weight,
+            categories=as_data,
+            description=description,
+        )
         course.assignments[name] = assignment
 
     return course
+
 
 class Course:
     """Course
@@ -173,7 +205,8 @@ class Course:
 
     def __str__(this):
         return "<Course name='{}', {} assignments>".format(
-                this.name, len(this.assignments))
+            this.name, len(this.assignments)
+        )
 
     def generate_tree(this):
         """generate_tree
@@ -186,7 +219,7 @@ class Course:
 
         s = str(this) + "\n"
         for assignment in this.assignments:
-            s += ("\t" + str(this.assignments[assignment]) + "\n")
+            s += "\t" + str(this.assignments[assignment]) + "\n"
         return s
 
     def dump_string(this):
@@ -204,14 +237,15 @@ class Course:
         for assignment_name in this.assignments:
             assignment = this.assignments[assignment_name]
             data[assignment_name] = {
-                    "name": assignment.name,
-                    "weight": assignment.weight,
-                    "description": assignment.description
-                }
+                "name": assignment.name,
+                "weight": assignment.weight,
+                "description": assignment.description,
+            }
             for key in assignment.categories:
                 data[assignment_name][key] = assignment.categories[key]
 
         return toml.dumps(data)
+
 
 class Assignment:
     """Assignment
@@ -232,15 +266,14 @@ class Assignment:
         :param description: optional assignment description
         """
 
-        this.course      = course
-        this.name        = name
-        this.weight      = weight
-        this.categories  = categories
+        this.course = course
+        this.name = name
+        this.weight = weight
+        this.categories = categories
         this.description = description
 
     def __str__(this):
-        return "<Assignment name='{}' weight={}>".format(
-                this.name, this.weight)
+        return "<Assignment name='{}' weight={}>".format(this.name, this.weight)
 
     def generate_rubric(this):
         """generate_rubric
@@ -251,13 +284,16 @@ class Assignment:
         """
 
         s = "{}: {} ({:3.2f}%)\n\n".format(
-                this.course.name, this.name, this.weight * 100)
+            this.course.name, this.name, this.weight * 100
+        )
 
         if this.description != "":
             s += this.description + "\n\n"
 
-        s += tabulate.tabulate([(cat, this.categories[cat])
-                for cat in this.categories.keys()], tablefmt="plain")
+        s += tabulate.tabulate(
+            [(cat, this.categories[cat]) for cat in this.categories.keys()],
+            tablefmt="plain",
+        )
 
         s += "\n\nSUM OF MARKS: {}\n".format(this.max_marks())
 

@@ -24,115 +24,204 @@ from . import util
 from . import course
 from . import grade
 
-def psf_cli(argv = None):
+
+def psf_cli(argv=None):
     parser = argparse.ArgumentParser(
-            "Generate, inspect, and extract PSF (Pretor Submission File) archives")
+        """Generate, inspect, and extract PSF
+            (Pretor Submission File) archives"""
+    )
 
-    parser.add_argument("--version", action="version",
-            version=constants.version)
+    parser.add_argument("--version", action="version", version=constants.version)
 
-    parser.add_argument("--debug", "-d", action="store_true", default=False,
-            help="Log debugging output to the console.")
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
 
-    parser.add_argument("--destination", "-D", default=None,
-             help="Specify destination directory for" +
-            " output file. Only used when combined with --create or" +
-            " --extract. (default: ../ when used with --create, or" +
-            "the name value when used with --extract)")
+    parser.add_argument(
+        "--destination",
+        "-D",
+        default=None,
+        help="Specify destination directory for"
+        + " output file. Only used when combined with --create or"
+        + " --extract. (default: ../ when used with --create, or"
+        + "the name value when used with --extract)",
+    )
 
-    parser.add_argument("--name", "-n", default=None,
-            help="Override the name of the output file. Usually, you should "+
-            "not need to specify this option, as Pretor will generate " +
-            "a suitable name for your file automatically. Only used when " +
-            "combined with --create.")
+    parser.add_argument(
+        "--name",
+        "-n",
+        default=None,
+        help="Override the name of the output file. Usually, you should "
+        + "not need to specify this option, as Pretor will generate "
+        + "a suitable name for your file automatically. Only used when "
+        + "combined with --create.",
+    )
 
-    parser.add_argument("--source", "-s", default="./", type=pathlib.Path,
-            help="Source directory when using --create. " +
-            "(default: ./)")
+    parser.add_argument(
+        "--source",
+        "-s",
+        default="./",
+        type=pathlib.Path,
+        help="Source directory when using --create. " + "(default: ./)",
+    )
 
-    parser.add_argument("--input", "-i", default=None,
-            help="Input file when using --extract, --manifest, --metadata "+
-            "or --summarize.")
+    parser.add_argument(
+        "--input",
+        "-i",
+        default=None,
+        help="Input file when using --extract, --manifest, --metadata "
+        + "or --summarize.",
+    )
 
-    parser.add_argument("--revid", "-r", default="submission",
-            help="Specify revision ID where applicable. (default: submission)")
+    parser.add_argument(
+        "--revid",
+        "-r",
+        default="submission",
+        help="Specify revision ID where applicable. (default: submission)",
+    )
 
-    parser.add_argument("--course", "-C", default=None,
-            help="Specify the course code (i.e. CSCE145). If not specified, " +
-            "the course code will be read from pretor.toml in the source " +
-            "directory. This option only has any effect when used with" +
-            "--create.")
+    parser.add_argument(
+        "--course",
+        "-C",
+        default=None,
+        help="Specify the course code (i.e. CSCE145). If not specified, "
+        + "the course code will be read from pretor.toml in the source "
+        + "directory. This option only has any effect when used with"
+        + "--create.",
+    )
 
-    parser.add_argument("--section", "-S", default=None,
-            help="Specify the section number (i.e. 1). If not specified, " +
-            "the section number will be read from pretor.toml in the source " +
-            "directory. This option only has any effect when used with" +
-            "--create.")
+    parser.add_argument(
+        "--section",
+        "-S",
+        default=None,
+        help="Specify the section number (i.e. 1). If not specified, "
+        + "the section number will be read from pretor.toml in the source "
+        + "directory. This option only has any effect when used with"
+        + "--create.",
+    )
 
-    parser.add_argument("--semester", "-e", default=None,
-            help="Specify the semester (i.e. F2005). If not specified, " +
-            "the semester will be read from pretor.toml in the source " +
-            "directory. This option only has any effect when used with" +
-            "--create.")
+    parser.add_argument(
+        "--semester",
+        "-e",
+        default=None,
+        help="Specify the semester (i.e. F2005). If not specified, "
+        + "the semester will be read from pretor.toml in the source "
+        + "directory. This option only has any effect when used with"
+        + "--create.",
+    )
 
-    parser.add_argument("--assignment", "-a", default=None,
-            help="Specify the assignment. If not specified, the assignment" +
-            "will be read from pretor.toml in the source directory." +
-            "This option only has any effect when used with --create")
+    parser.add_argument(
+        "--assignment",
+        "-a",
+        default=None,
+        help="Specify the assignment. If not specified, the assignment"
+        + "will be read from pretor.toml in the source directory."
+        + "This option only has any effect when used with --create",
+    )
 
-    parser.add_argument("--group", "-g", default=getpass.getuser(),
-            help="Specify the group identifier. If you are working in a " +
-            "group, this is usually your group number. If you are working " +
-            "along, this is usually your student ID. If not specified " +
-            "then the username of the logged in user will be used.")
+    parser.add_argument(
+        "--group",
+        "-g",
+        default=getpass.getuser(),
+        help="Specify the group identifier. If you are working in a "
+        + "group, this is usually your group number. If you are working "
+        + "along, this is usually your student ID. If not specified "
+        + "then the username of the logged in user will be used.",
+    )
 
     # Deliberately undocumented option - suppress all checks for the validity
     # of metadata (course, section, semester, groupid). Useful for testing, but
     # should not be used by students as the generated PSF files will be
     # impossible to grade.
-    parser.add_argument("--no_meta_check", default=False, action="store_true",
-            help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--no_meta_check", default=False, action="store_true", help=argparse.SUPPRESS
+    )
 
     # Deliberately undocumented option - suppress check that pretor.toml exists
     # in the input directory and allow packing of any directory.  This should
     # not be used by students, as it would allow creating a submission that may
     # be invalid or improperly rooted. It would also permit bypassing any
     # plugin-supplied checks.
-    parser.add_argument("--allow_no_toml", default=False, action="store_true",
-            help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--allow_no_toml", default=False, action="store_true", help=argparse.SUPPRESS
+    )
 
-    parser.add_argument("--force", "-F", default=False, action="store_true",
-            help="Only used when combined with --create. Causes output " +
-            "file to be overwritten even if it already exists.")
+    parser.add_argument(
+        "--force",
+        "-F",
+        default=False,
+        action="store_true",
+        help="Only used when combined with --create. Causes output "
+        + "file to be overwritten even if it already exists.",
+    )
 
     action = parser.add_mutually_exclusive_group(required=True)
 
-    action.add_argument("--create", "-c", default=False, action="store_true",
-            help="Create a new PSF archive in the destination directory " +
-            "(--destination) from the source (--source) directory. " +
-            "--revid may be used change the ID of the created revision.")
+    action.add_argument(
+        "--create",
+        "-c",
+        default=False,
+        action="store_true",
+        help="Create a new PSF archive in the destination directory "
+        + "(--destination) from the source (--source) directory. "
+        + "--revid may be used change the ID of the created revision.",
+    )
 
-    action.add_argument("--extract", "-x", default=False, action="store_true",
-            help="Extract an existing PSF archive into the destination " +
-            "directory (--destination). --revid may be used to specify " +
-            "which revision should be extracted.")
+    action.add_argument(
+        "--extract",
+        "-x",
+        default=False,
+        action="store_true",
+        help="Extract an existing PSF archive into the destination "
+        + "directory (--destination). --revid may be used to specify "
+        + "which revision should be extracted.",
+    )
 
-    action.add_argument("--metadata", "-m", default=False, action="store_true",
-            help="Dump metadata for the specified input PSF archive.")
+    action.add_argument(
+        "--metadata",
+        "-m",
+        default=False,
+        action="store_true",
+        help="Dump metadata for the specified input PSF archive.",
+    )
 
-    action.add_argument("--summarize", "-M", default=False, action="store_true",
-            help="Summarize the specified PSF archive's structure")
+    action.add_argument(
+        "--summarize",
+        "-M",
+        default=False,
+        action="store_true",
+        help="Summarize the specified PSF archive's structure",
+    )
 
-    action.add_argument("--manifest", "-t", default=False, action="store_true",
-            help="Display the manifest for the specified input archive and " +
-            "revision ID.")
+    action.add_argument(
+        "--manifest",
+        "-t",
+        default=False,
+        action="store_true",
+        help="Display the manifest for the specified input archive and "
+        + "revision ID.",
+    )
 
-    action.add_argument("--forensic", "-f", default=False, action="store_true",
-            help="Display forensic data encoded in the input archive.")
+    action.add_argument(
+        "--forensic",
+        "-f",
+        default=False,
+        action="store_true",
+        help="Display forensic data encoded in the input archive.",
+    )
 
-    action.add_argument("--scorecard", "-R", default=False, action="store_true",
-            help="Generate a scorecard for the canonical grade" +
-            "revision, or for the one specified as an argument to --revid.")
+    action.add_argument(
+        "--scorecard",
+        "-R",
+        default=False,
+        action="store_true",
+        help="Generate a scorecard for the canonical grade"
+        + "revision, or for the one specified as an argument to --revid.",
+    )
 
     args = None
     if argv is not None:
@@ -163,8 +252,9 @@ def psf_cli(argv = None):
             logging.warning("generating PSF without pretor.toml")
 
         elif not pretor_path.exists():
-            logging.error("'{}' does not exist, refusing to generate PSF"
-                    .format(pretor_path))
+            logging.error(
+                "'{}' does not exist, refusing to generate PSF".format(pretor_path)
+            )
             sys.exit(1)
         else:
             logging.warning("packing PSF without pretor.toml")
@@ -205,7 +295,6 @@ def psf_cli(argv = None):
                 logging.error("Section was not specified.")
                 sys.exit(1)
 
-
         logging.info("reading data from {}".format(args.source))
         psf = PSF()
         psf.load_from_dir(args.source, args.revid, excludelist)
@@ -236,11 +325,8 @@ def psf_cli(argv = None):
         # write output file
         if args.name is None:
             args.name = "{}-{}-{}-{}-{}.psf".format(
-                    args.semester,
-                    args.course,
-                    args.section,
-                    args.group,
-                    args.assignment)
+                args.semester, args.course, args.section, args.group, args.assignment
+            )
 
         if args.destination is None:
             args.destination = "../"
@@ -253,13 +339,13 @@ def psf_cli(argv = None):
         if not output_path.exists() or args.force:
             psf.save_to_archive(output_path)
         else:
-            logging.error("output file '{}' exists, refusing to overwrite"
-                .format(output_path))
+            logging.error(
+                "output file '{}' exists, refusing to overwrite".format(output_path)
+            )
             sys.exit(1)
         logging.info("PSF written to '{}'".format(output_path))
 
         sys.exit(0)
-
 
     if args.input is None:
         logging.error("No input file specified.")
@@ -303,7 +389,8 @@ def psf_cli(argv = None):
             if args.revid in psf.revisions:
                 if psf.get_revision(args.revid).grade is not None:
                     sys.stdout.write(
-                            psf.get_revision(args.revid).grade.generate_scorecard())
+                        psf.get_revision(args.revid).grade.generate_scorecard()
+                    )
                 else:
                     logging.error("revision {} has no grade".format(args.revid))
                     sys.exit(1)
@@ -311,8 +398,6 @@ def psf_cli(argv = None):
             else:
                 logging.error("no such revision {}".format(args.revid))
                 sys.exit(1)
-
-
 
 
 class PSF:
@@ -337,9 +422,9 @@ class PSF:
 
     def __init__(this):
         this.revisions = {}
-        this.ID        = None
-        this.metadata  = {}
-        this.forensic  = {}
+        this.ID = None
+        this.metadata = {}
+        this.forensic = {}
 
     def __str__(this):
         if this.ID is None:
@@ -357,8 +442,8 @@ class PSF:
         """
 
         return tabulate.tabulate(
-                [(k, this.metadata[k]) for k in this.metadata],
-                tablefmt = "plain")
+            [(k, this.metadata[k]) for k in this.metadata], tablefmt="plain"
+        )
 
     def format_forensic(this):
         """format_forensic
@@ -370,8 +455,8 @@ class PSF:
         """
 
         return tabulate.tabulate(
-                [(k, this.forensic[k]) for k in this.forensic],
-                tablefmt = "plain")
+            [(k, this.forensic[k]) for k in this.forensic], tablefmt="plain"
+        )
 
     def generate_tree(this):
         """generate_tree
@@ -414,56 +499,61 @@ class PSF:
             exclude = False
             for pattern in excludelist:
                 if child.match(pattern):
-                    logging.debug("ignoring file '{}' per excludelist"
-                            .format(child))
+                    logging.debug("ignoring file '{}' per excludelist".format(child))
                     exclude = True
                     break
 
             if exclude or child.is_dir():
                 continue
 
-            with open(str(child), 'rb') as f:
-                rev.put_file(
-                        child.relative_to(path),
-                        f.read())
+            with open(str(child), "rb") as f:
+                rev.put_file(child.relative_to(path), f.read())
 
     def load_from_archive(this, archive_path: pathlib.Path):
         logging.debug("loading PSF archive {}".format(archive_path))
 
         archive_path = pathlib.Path(archive_path)
 
-        with zipfile.ZipFile(str(archive_path), 'r') as f:
+        with zipfile.ZipFile(str(archive_path), "r") as f:
 
             # load forensic data from PSF
             try:
-                this.forensic = toml.loads(
-                        zlib.decompress(f.comment).decode("utf-8"))
+                this.forensic = toml.loads(zlib.decompress(f.comment).decode("utf-8"))
             except Exception as e:
                 util.log_exception(e)
-                logging.warning("archive {} has missing or invalid forensic data"
-                        .format(archive_path))
+                logging.warning(
+                    "archive {} has missing or invalid forensic data".format(
+                        archive_path
+                    )
+                )
 
             # load the pretor data file for the PSF
             try:
                 f.getinfo("pretor_data.toml")
             except KeyError:
-                raise PSFInvalid("Invalid archive {}, no pretor_data.toml"
-                        .format(archive_path))
+                raise PSFInvalid(
+                    "Invalid archive {}, no pretor_data.toml".format(archive_path)
+                )
 
             pretor_data = None
             try:
-                pretor_data = toml.loads(
-                        f.read("pretor_data.toml").decode("utf-8"))
+                pretor_data = toml.loads(f.read("pretor_data.toml").decode("utf-8"))
             except Exception as e:
                 util.log_exception(e)
-                raise PSFInvalid("Invalid archive {}, could not load pretor_data.toml"
-                        .format(archive_path))
+                raise PSFInvalid(
+                    "Invalid archive {}, could not load pretor_data.toml".format(
+                        archive_path
+                    )
+                )
 
             # ensure pretor_data contains all required keys
             for key in ["pretor_version", "ID", "revisions"]:
                 if key not in pretor_data:
-                    raise PSFInvalid("Invalid archive {}, pretor_data.toml missing key {}"
-                        .format(archive_path, key))
+                    raise PSFInvalid(
+                        "Invalid archive {}, pretor_data.toml missing key {}".format(
+                            archive_path, key
+                        )
+                    )
 
             logging.debug("pretor_data.toml is valid")
 
@@ -476,10 +566,12 @@ class PSF:
             for revID in pretor_data["revisions"]:
                 logging.debug("processing revision {}".format(revID))
 
-                if '..' in revID or '~' in revID:
+                if ".." in revID or "~" in revID:
                     raise PSFInvalid(
-                        "Archive {} contains maliciously constructed revID {}"
-                        .format(archive_path, revID))
+                        "Archive {} contains maliciously constructed revID {}".format(
+                            archive_path, revID
+                        )
+                    )
 
                 rev_data = None
 
@@ -491,13 +583,17 @@ class PSF:
                     logging.debug("loaded revision data successfully")
                 except KeyError:
                     raise PSFInvalid(
-                        "Invalid archive {}, pretor_data.toml specifies nonexistant revID {}"
-                        .format(archive_path, revID))
+                        "Invalid archive {}, pretor_data.toml specifies nonexistant revID {}".format(
+                            archive_path, revID
+                        )
+                    )
                 except Exception as e:
                     util.log_exception(e)
                     raise PSFInvalid(
-                        "Invalid archive {}, could not load rev_data.toml for revID {}"
-                        .format(archive_path, revID))
+                        "Invalid archive {}, could not load rev_data.toml for revID {}".format(
+                            archive_path, revID
+                        )
+                    )
 
                 # load grade data from archive
                 grade_data = None
@@ -514,8 +610,10 @@ class PSF:
                 except Exception as e:
                     util.log_exception(e)
                     raise PSFInvalid(
-                        "Invalid archive {}, invalid grade.toml for revID {}"
-                        .format(archive_path, revID))
+                        "Invalid archive {}, invalid grade.toml for revID {}".format(
+                            archive_path, revID
+                        )
+                    )
 
                 try:
                     course_data = f.getinfo("revisions/{}/course.toml".format(revID))
@@ -527,13 +625,17 @@ class PSF:
                     logging.debug("no course data specified")
                     if grade_data is not None:
                         raise PSFInvalid(
-                            "Invalid archive {}, grade specified without course for revID {}"
-                            .format(archive_path, revID))
+                            "Invalid archive {}, grade specified without course for revID {}".format(
+                                archive_path, revID
+                            )
+                        )
                 except Exception as e:
                     util.log_exception(e)
                     raise PSFInvalid(
-                        "Invalid archive {}, invalid course.toml for revID {}"
-                        .format(archive_path, revID))
+                        "Invalid archive {}, invalid course.toml for revID {}".format(
+                            archive_path, revID
+                        )
+                    )
 
                 course_obj = None
                 if course_data is not None:
@@ -548,23 +650,27 @@ class PSF:
                         assert grade_data["assignment_name"] in course_data
                 except Exception as e:
                     raise PSFInvalid(
-                        "Invalid archive {}, mangled course/grade data for revID {}"
-                        .format(archive_path, revID))
+                        "Invalid archive {}, mangled course/grade data for revID {}".format(
+                            archive_path, revID
+                        )
+                    )
 
                 grade_obj = None
                 if grade_data is not None:
                     grade_obj = grade.Grade(
-                        course_obj.assignments[grade_data["assignment_name"]])
+                        course_obj.assignments[grade_data["assignment_name"]]
+                    )
                     grade_obj.load_data(grade_data)
-                    logging.debug("generated grade object: {}"
-                            .format(grade_obj))
+                    logging.debug("generated grade object: {}".format(grade_obj))
 
                 # validate the revision data
                 for key in ["ID", "contents"]:
                     if key not in rev_data:
                         raise PSFInvalid(
-                            "Invalid archive {}, rev_data.toml for revID {} missing key {}"
-                            .format(archive_path, revID, key))
+                            "Invalid archive {}, rev_data.toml for revID {} missing key {}".format(
+                                archive_path, revID, key
+                            )
+                        )
 
                 # initialize revision object and install into revisions
                 rev = Revision(this, revID)
@@ -576,13 +682,14 @@ class PSF:
 
                 rev.grade = grade_obj
 
-
                 # load revision files from archive
                 for path in rev_data["contents"]:
-                    if '..' in path or '~' in path:
+                    if ".." in path or "~" in path:
                         raise PSFInvalid(
-                            "Archive {} contains maliciously constructed path {}"
-                            .format(archive_path, path))
+                            "Archive {} contains maliciously constructed path {}".format(
+                                archive_path, path
+                            )
+                        )
 
                     logging.debug("loading file {}".format(path))
 
@@ -593,8 +700,10 @@ class PSF:
                     except Exception as e:
                         util.log_exception(e)
                         raise PSFInvalid(
-                                "Invalid archive {}, could not load {} from revision {}"
-                                .format(archive_path, path, revID))
+                            "Invalid archive {}, could not load {} from revision {}".format(
+                                archive_path, path, revID
+                            )
+                        )
 
         this.metadata["archive_name"] = archive_path
 
@@ -619,12 +728,14 @@ class PSF:
             pretor_data["pretor_version"] = constants.version
             pretor_data["revisions"] = list(this.revisions.keys())
             pretor_data["metadata"] = this.metadata
-            f.writestr("pretor_data.toml",
-                    toml.dumps(pretor_data), compress_type=zipfile.ZIP_LZMA)
+            f.writestr(
+                "pretor_data.toml",
+                toml.dumps(pretor_data),
+                compress_type=zipfile.ZIP_LZMA,
+            )
 
             # write forensic data
-            f.comment = \
-                zlib.compress(toml.dumps(this.forensic).encode("utf-8"))
+            f.comment = zlib.compress(toml.dumps(this.forensic).encode("utf-8"))
 
             # write each revision file
             for revID in this.revisions:
@@ -649,24 +760,35 @@ class PSF:
         rev_data["ID"] = revID
         rev_data["parentID"] = rev.parentID
         rev_data["contents"] = list(rev.contents.keys())
-        f.writestr("revisions/{}/rev_data.toml".format(revID),
-                toml.dumps(rev_data), compress_type=zipfile.ZIP_LZMA)
+        f.writestr(
+            "revisions/{}/rev_data.toml".format(revID),
+            toml.dumps(rev_data),
+            compress_type=zipfile.ZIP_LZMA,
+        )
 
         if rev.grade is not None:
-            f.writestr("revisions/{}/grade.toml".format(revID),
-                    rev.grade.dump_string(), compress_type=zipfile.ZIP_LZMA)
+            f.writestr(
+                "revisions/{}/grade.toml".format(revID),
+                rev.grade.dump_string(),
+                compress_type=zipfile.ZIP_LZMA,
+            )
 
-            f.writestr("revisions/{}/course.toml".format(revID),
-                    rev.grade.assignment.course.dump_string(),
-                    compress_type=zipfile.ZIP_LZMA)
+            f.writestr(
+                "revisions/{}/course.toml".format(revID),
+                rev.grade.assignment.course.dump_string(),
+                compress_type=zipfile.ZIP_LZMA,
+            )
 
         # add each file to the archive
         for path in rev.contents:
             logging.debug("saving {}".format(rev.contents[path]))
 
             data = rev.contents[path].get_data()
-            f.writestr("revisions/{}/contents/{}".format(revID, path),
-                    data, compress_type=zipfile.ZIP_LZMA)
+            f.writestr(
+                "revisions/{}/contents/{}".format(revID, path),
+                data,
+                compress_type=zipfile.ZIP_LZMA,
+            )
 
     def create_revision(this, revID, baseRevID=None):
         """create_revision
@@ -682,15 +804,12 @@ class PSF:
 
         if revID in this.revisions:
             raise PSFRevisionError(
-                "Cannot create revID {}, already exists in PSF {}"
-                .format(revID, this))
+                "Cannot create revID {}, already exists in PSF {}".format(revID, this)
+            )
 
         baseRev = this.get_revision(baseRevID)
 
-        this.revisions[revID] = Revision(
-                this,
-                revID,
-                baseRev)
+        this.revisions[revID] = Revision(this, revID, baseRev)
 
         return this.revisions[revID]
 
@@ -738,7 +857,7 @@ class PSF:
 
         return None
 
-    def create_grade_revision(this, baseRevID = None):
+    def create_grade_revision(this, baseRevID=None):
         """create_grade_revision
 
         Create a new revision with a dynamically selected revID for grading
@@ -753,11 +872,11 @@ class PSF:
 
         if baseRevID == None:
             if this.get_grade_rev() is None:
-                logging.error("failed to create grade revision without " +
-                        "explicit baseRevID: no graded revisions in {}"
-                        .format(this))
-                raise exceptions.StateError(
-                        "no graded revisions in {}".format(this))
+                logging.error(
+                    "failed to create grade revision without "
+                    + "explicit baseRevID: no graded revisions in {}".format(this)
+                )
+                raise exceptions.StateError("no graded revisions in {}".format(this))
 
             baseRevID = this.get_grade_rev().ID
 
@@ -767,8 +886,9 @@ class PSF:
         revNo = 0
         while newRevID in this.revisions:
             if re.match(r".*_[0-9]+", newRevID):
-                revNo = int(str(
-                    re.findall(r"_[0-9]+", newRevID)[-1]).replace("_", "")) + 1
+                revNo = (
+                    int(str(re.findall(r"_[0-9]+", newRevID)[-1]).replace("_", "")) + 1
+                )
                 newRevID = re.sub(r"_[0-9]+", "", newRevID)
                 newRevID = "{}_{}".format(newRevID, revNo)
             else:
@@ -783,7 +903,6 @@ class PSF:
         newRev.grade = copy.deepcopy(baseRev.grade)
 
         return newRev
-
 
     def get_children(this, rev):
         """get_children
@@ -821,7 +940,7 @@ class Revision:
     This object abstracts a single PSF revision"
     """
 
-    def __init__(this, psf, revID, parentRev = None):
+    def __init__(this, psf, revID, parentRev=None):
         """__init__
 
         :param this:
@@ -845,17 +964,15 @@ class Revision:
         this.parentID = parentRev.ID
         # copy all files from the base revision to this one
         for path in parentRev.contents:
-            parent = './'
+            parent = "./"
             name = path
-            if '/' in path:
-                parent = '/'.join(path.split('/')[:-1])
-                name = path.split('/')[-1]
+            if "/" in path:
+                parent = "/".join(path.split("/")[:-1])
+                name = path.split("/")[-1]
 
             this.contents[path] = FileData(
-                    this,
-                    parent,
-                    name,
-                    parentRev.contents[path].get_data())
+                this, parent, name, parentRev.contents[path].get_data()
+            )
 
     def __str__(this):
         if this.parentID is None:
@@ -870,8 +987,11 @@ class Revision:
         :param path: the directory to list
         """
 
-        return (this.contents[p] for p in this.contents
-                if str(this.contents[p].parent) == str(path))
+        return (
+            this.contents[p]
+            for p in this.contents
+            if str(this.contents[p].parent) == str(path)
+        )
 
     def get_file(this, path):
         if path in this.contents:
@@ -886,13 +1006,11 @@ class Revision:
 
         if not isinstance(data, FileData):
             data = FileData(
-                    this,
-                    '/'.join(path.split('/')[:-1]),
-                    path.split('/')[-1],
-                    data)
+                this, "/".join(path.split("/")[:-1]), path.split("/")[-1], data
+            )
 
-        data.parent =  '/'.join(path.split('/')[:-1])
-        data.name = path.split('/')[-1]
+        data.parent = "/".join(path.split("/")[:-1])
+        data.name = path.split("/")[-1]
 
         this.contents[path] = data
 
@@ -928,7 +1046,7 @@ class Revision:
             if not target_path.parent.exists():
                 target_path.parent.mkdir()
 
-            with open(target_path, 'wb') as f:
+            with open(target_path, "wb") as f:
                 # write to destination file
                 f.write(fdata.get_data())
 
@@ -940,12 +1058,7 @@ class FileData:
     when passed to the constructor, they are stored in a SpooledTemporaryFile.
     """
 
-    def __init__(this,
-            revision: Revision,
-            parent: pathlib.PurePath,
-            name: str,
-            data
-            ):
+    def __init__(this, revision: Revision, parent: pathlib.PurePath, name: str, data):
         """__init__
 
         :param this:
@@ -956,8 +1069,8 @@ class FileData:
         """
 
         this.revision = revision
-        this.parent   = pathlib.PurePath(parent)
-        this.name     = str(name)
+        this.parent = pathlib.PurePath(parent)
+        this.name = str(name)
 
         if isinstance(data, io.IOBase):
             this.data = data
@@ -971,8 +1084,7 @@ class FileData:
             this.data.write(data)
 
     def __str__(this):
-        return "<FileData '{}' in {}>" \
-                .format(this.get_path(), str(this.revision))
+        return "<FileData '{}' in {}>".format(this.get_path(), str(this.revision))
 
     def get_data(this):
         this.data.seek(0, 0)
@@ -993,6 +1105,7 @@ class PSFInvalid(Exception):
 
         super().__init__(msg)
 
+
 class PSFRevisionError(Exception):
     """PSFRevisionError
 
@@ -1003,6 +1116,7 @@ class PSFRevisionError(Exception):
         msg = "PSF Revision Error: {}".format(str(msg))
 
         super().__init__(msg)
+
 
 class PSFRevisionNoSuchFile(Exception):
     """PSFRevisionNoSuchFile

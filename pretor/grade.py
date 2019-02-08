@@ -15,33 +15,59 @@ from . import constants
 from . import course
 from . import util
 
+
 def grade_dbg_cli():
 
-    parser = argparse.ArgumentParser("""CLI tool for displaying information
+    parser = argparse.ArgumentParser(
+        """CLI tool for displaying information
 stored in Pretor grade definition files. This tool is primarily for debugging
 issues relating to the pretor.grade module, and is not recommended for
 production use.
-""")
+"""
+    )
 
-    parser.add_argument("--version", action="version",
-            version=constants.version)
+    parser.add_argument("--version", action="version", version=constants.version)
 
-    parser.add_argument("--debug", "-d", action="store_true", default=False,
-            help="Log debugging output to the console.")
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
 
-    parser.add_argument("--course", "-c", required=True, type=pathlib.Path,
-            help="Specify the course definition file to load.")
+    parser.add_argument(
+        "--course",
+        "-c",
+        required=True,
+        type=pathlib.Path,
+        help="Specify the course definition file to load.",
+    )
 
-    parser.add_argument("--assignment", "-a", required=True,
-            help="Specify the assignment to associate with the grade")
+    parser.add_argument(
+        "--assignment",
+        "-a",
+        required=True,
+        help="Specify the assignment to associate with the grade",
+    )
 
-    parser.add_argument("--file", "-f", required=True, type=pathlib.Path,
-            help="Specify the Pretor grade definition file to load")
+    parser.add_argument(
+        "--file",
+        "-f",
+        required=True,
+        type=pathlib.Path,
+        help="Specify the Pretor grade definition file to load",
+    )
 
     action = parser.add_mutually_exclusive_group(required=True)
 
-    action.add_argument("--scorecard", "-s", default=False,
-            action="store_true", help="Display the scorecard.")
+    action.add_argument(
+        "--scorecard",
+        "-s",
+        default=False,
+        action="store_true",
+        help="Display the scorecard.",
+    )
 
     args = parser.parse_args()
 
@@ -62,6 +88,7 @@ production use.
     except Exception as e:
         util.log_exception(e)
         sys.exit(1)
+
 
 class Grade:
     """Grade
@@ -130,7 +157,8 @@ class Grade:
 
     def __str__(this):
         return "<Grade for Assignment {}, score={}>".format(
-                this.assignment, this.get_score())
+            this.assignment, this.get_score()
+        )
 
     def get_score(this):
         """get_score
@@ -178,16 +206,15 @@ class Grade:
         if this.override is not None:
             return this.override
 
-        marks = (this.get_marks() +
-                    this.bonus_marks -
-                    this.penalty_marks) / this.assignment.max_marks()
+        marks = (
+            this.get_marks() + this.bonus_marks - this.penalty_marks
+        ) / this.assignment.max_marks()
 
-        marks *= (1.0 + this.bonus_multiplier - this.penalty_multiplier)
+        marks *= 1.0 + this.bonus_multiplier - this.penalty_multiplier
 
-        marks += (this.bonus_score - this.penalty_score)
+        marks += this.bonus_score - this.penalty_score
 
         return marks
-
 
     def get_marks(this):
         """get_marks
@@ -237,7 +264,6 @@ class Grade:
 
         return toml.dumps(data)
 
-
     def generate_scorecard(this):
         """generate_scorecard
 
@@ -250,7 +276,8 @@ class Grade:
         """
 
         s = "SCORECARD FOR {}: {}\n\n".format(
-                this.assignment.course.name, this.assignment.name)
+            this.assignment.course.name, this.assignment.name
+        )
 
         if this.feedback != "":
             s += this.feedback + "\n\n"
@@ -258,40 +285,44 @@ class Grade:
         table_data = [["CATEGORY", "MARKS", "MAX MARKS", "PERCENT SCORE"]]
 
         for category in this.categories:
-            table_data.append([
-               category,
-               this.categories[category],
-               this.assignment.categories[category],
-               "{:3.2f}%".format(this.get_category_percent(category) * 100)
-               ])
+            table_data.append(
+                [
+                    category,
+                    this.categories[category],
+                    this.assignment.categories[category],
+                    "{:3.2f}%".format(this.get_category_percent(category) * 100),
+                ]
+            )
 
         if this.bonus_marks != 0:
-           table_data.append(["BONUS MARKS", this.bonus_marks, "--", "--"])
+            table_data.append(["BONUS MARKS", this.bonus_marks, "--", "--"])
 
         if this.penalty_marks != 0:
-            table_data.append(
-                ["PENALTY MARKS", this.penalty_marks, "--", "--"])
+            table_data.append(["PENALTY MARKS", this.penalty_marks, "--", "--"])
 
-        s += tabulate.tabulate(table_data, tablefmt = "plain")
+        s += tabulate.tabulate(table_data, tablefmt="plain")
 
         s += "\n\n"
 
-        raw_score = (this.get_marks() / this.assignment.max_marks())
-        raw_score_net = ((this.get_marks() + this.bonus_marks + 
-            this.penalty_marks) / this.assignment.max_marks())
+        raw_score = this.get_marks() / this.assignment.max_marks()
+        raw_score_net = (
+            this.get_marks() + this.bonus_marks + this.penalty_marks
+        ) / this.assignment.max_marks()
 
         s += "OVERALL MARKS: {}\n".format(this.get_marks())
         s += "MAXIMUM OVERALL MARKS: {}\n".format(this.assignment.max_marks())
         s += "RAW SCORE: {:3.2f}%\n".format(raw_score * 100)
 
-        if (this.bonus_marks != 0 or this.penalty_marks != 0):
+        if this.bonus_marks != 0 or this.penalty_marks != 0:
             s += "RAW SCORE NET OF BONUS/PENALTY MARKS: {:3.2f}%\n".format(
-                     raw_score_net * 100)
+                raw_score_net * 100
+            )
 
         s += "\n"
 
-        score_multiplier = raw_score_net * (1.0 + this.bonus_multiplier - 
-                this.penalty_multiplier)
+        score_multiplier = raw_score_net * (
+            1.0 + this.bonus_multiplier - this.penalty_multiplier
+        )
 
         if this.bonus_multiplier != 0:
             s += "BONUS MULTIPLIER: {:3.2f}\n".format(this.bonus_multiplier)
@@ -299,9 +330,10 @@ class Grade:
         if this.penalty_multiplier != 0:
             s += "PENALTY MULTIPLIER: {:3.2f}\n".format(this.penalty_multiplier)
 
-        if (this.penalty_multiplier != 0 or this.bonus_multiplier != 0):
+        if this.penalty_multiplier != 0 or this.bonus_multiplier != 0:
             s += "SCORE NET OF BONUS/PENALTY MULTIPLIER: {:3.2f}%\n\n".format(
-                    score_multiplier * 100)
+                score_multiplier * 100
+            )
 
         score_bonus = score_multiplier + this.bonus_score - this.penalty_score
         if this.bonus_score != 0:
@@ -310,14 +342,14 @@ class Grade:
         if this.penalty_score != 0:
             s += "PENALTY SCORE: {:3.2f}%\n".format(this.penalty_score * 100)
 
-        if (this.penalty_score !=0 or this.bonus_score !=0):
+        if this.penalty_score != 0 or this.bonus_score != 0:
             s += "SCORE NET OF BONUS/PENALTY SCORE: {:3.2f}%\n\n".format(
-                    score_bonus * 100)
+                score_bonus * 100
+            )
 
         s += "OVERALL SCORE: {:3.2f}%\n".format(this.get_score() * 100)
 
         return s
-
 
     def get_category_percent(this, category):
         """get_category_percent
@@ -330,7 +362,6 @@ class Grade:
         """
 
         return this.categories[category] / this.assignment.categories[category]
-
 
     def load_file(this, path: pathlib.Path):
         """load_file
@@ -351,8 +382,7 @@ class Grade:
         :type path: pathlib.Path
         """
 
-        logging.debug("loading grade data from file '{}' to {}"
-                .format(path, this))
+        logging.debug("loading grade data from file '{}' to {}".format(path, this))
 
         path = pathlib.Path(path)
 
@@ -399,13 +429,15 @@ class Grade:
         except Exception as e:
             util.log_exception(e)
             raise exceptions.InvalidFile(
-                    "Could not load grade data from file '{}', malformed field"
-                    .format(path))
+                "Could not load grade data from file '{}', malformed field".format(path)
+            )
 
         if "categories" not in grade_data:
             raise exceptions.InvalidFile(
-                    "Could not load grade data from file '{}', missing categories"
-                    .format(path))
+                "Could not load grade data from file '{}', missing categories".format(
+                    path
+                )
+            )
 
         for category in grade_data["categories"]:
             marks = 0
@@ -414,15 +446,19 @@ class Grade:
             except Exception as e:
                 util.log_exception(e)
                 raise exceptions.InvalidFile(
-                        ("Could not load grade data from file '{}', category" +
-                            " '{}' has an invalid valid '{}'")
-                        .format(path, category, grade_data["categories"][category]))
+                    (
+                        "Could not load grade data from file '{}', category"
+                        + " '{}' has an invalid valid '{}'"
+                    ).format(path, category, grade_data["categories"][category])
+                )
 
             # don't allow categories that don't pertain to this assignment
             if category not in this.categories:
                 raise exceptions.InvalidFile(
-                        ("Could not load grade data from file '{}', category" +
-                            " '{}' not present in assignment {}")
-                        .format(path, category, this.assignment))
+                    (
+                        "Could not load grade data from file '{}', category"
+                        + " '{}' not present in assignment {}"
+                    ).format(path, category, this.assignment)
+                )
 
             this.categories[category] = marks
