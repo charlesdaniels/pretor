@@ -1,5 +1,10 @@
 dist: xenial
 language: python
+python:
+  - "3.5"
+  - "3.6"
+  - "3.7"
+  - "pypy3.5"
 
 install:
   - python3 setup.py install
@@ -8,11 +13,6 @@ jobs:
     include:
         - stage: test
           script: ./scripts/run_tests.sh
-          python:
-              - "3.5"
-              - "3.6"
-              - "3.7"
-              - "pypy3.5"
         - stage: lint
           python:
               - "3.7"
