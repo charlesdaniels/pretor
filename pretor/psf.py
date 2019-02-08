@@ -149,7 +149,9 @@ def psf_cli(argv = None):
         logging.info("creating PSF... ")
 
         # load data from pretor.toml
-        pretor_path = pathlib.Path(args.source, "pretor.toml").resolve()
+        pretor_path = pathlib.Path(args.source, "pretor.toml")
+        if pretor_path.exists():
+            pretor_path = pretor_path.resolve()
         pretor_data = {}
         excludelist = []
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
