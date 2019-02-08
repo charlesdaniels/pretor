@@ -610,7 +610,7 @@ class PSF:
 
         logging.debug("saving PSF {} to {}".format(this, path))
 
-        path = pathlib.Path(path)
+        path = str(pathlib.Path(path))
         with zipfile.ZipFile(path, "w") as f:
 
             # write pretor_data.toml
