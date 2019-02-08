@@ -12,6 +12,10 @@ cd ..
 echo "installing pretor... " 1>&2
 python3 setup.py install 2>&1 > /dev/null
 
+echo "python verion... " 1>&2
+python3 --version 1>&2
+
+
 cd test
 echo "running tests... " 1>&2
 
