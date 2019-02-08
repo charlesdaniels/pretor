@@ -1,5 +1,7 @@
 # Pretor
 
+[![Build Status](https://travis-ci.org/charlesdaniels/pretor.svg?branch=master)](https://travis-ci.org/charlesdaniels/pretor)
+
 **Pretor** - *an ancient Roman magistrate ranking below a consul and having
 chiefly judicial functions*
 ([Merriam-Webster](https://www.merriam-webster.com/dictionary/pretor))
