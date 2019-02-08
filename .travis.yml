@@ -9,11 +9,6 @@ python:
 install:
   - python3 setup.py install
 
-stages:
-    - test
-    - name: lint
-      if: python = "3.7"
-
 jobs:
     include:
         - stage: test
