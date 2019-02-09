@@ -253,7 +253,7 @@ def psf_cli(argv=None):
         excludelist = []
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
         if pretor_path.exists():
-            pretor_data = toml.load(pretor_path)
+            pretor_data = toml.load(str(pretor_path))
             logging.debug("loaded pretor.toml: {}".format(pretor_data))
 
         elif args.allow_no_toml:
