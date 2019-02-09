@@ -31,7 +31,6 @@ pretor-psf --create \
 
 RES=$?
 
-
 dest="$TMP/C-A-B-E-D.psf"
 
 if [ -f "$dest" ] ; then fail "pretor-psf generated '$dest'" ; fi
