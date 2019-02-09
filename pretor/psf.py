@@ -752,7 +752,7 @@ class PSF:
             f.writestr(
                 "pretor_data.toml",
                 toml.dumps(pretor_data),
-                compress_type=zipfile.ZIP_LZMA,
+                compress_type=constants.compress_type,
             )
 
             # write forensic data
@@ -784,20 +784,20 @@ class PSF:
         f.writestr(
             "revisions/{}/rev_data.toml".format(revID),
             toml.dumps(rev_data),
-            compress_type=zipfile.ZIP_LZMA,
+            compress_type=constants.compress_type,
         )
 
         if rev.grade is not None:
             f.writestr(
                 "revisions/{}/grade.toml".format(revID),
                 rev.grade.dump_string(),
-                compress_type=zipfile.ZIP_LZMA,
+                compress_type=constants.compress_type,
             )
 
             f.writestr(
                 "revisions/{}/course.toml".format(revID),
                 rev.grade.assignment.course.dump_string(),
-                compress_type=zipfile.ZIP_LZMA,
+                compress_type=constants.compress_type,
             )
 
         # add each file to the archive
@@ -808,7 +808,7 @@ class PSF:
             f.writestr(
                 "revisions/{}/contents/{}".format(revID, path),
                 data,
-                compress_type=zipfile.ZIP_LZMA,
+                compress_type=constants.compress_type,
             )
 
     def create_revision(this, revID, baseRevID=None):
