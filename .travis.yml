@@ -19,4 +19,9 @@ jobs:
               - "3.7"
           script: "pip install black && ./scripts/run_linter.sh"
         - stage: smoketest
+          python:
+            - "3.5"
+            - "3.6"
+            - "3.7"
+            - "pypy3.5"
           script: ./scripts/run_smoketests.sh
