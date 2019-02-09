@@ -23,3 +23,30 @@ def log_exception(e):
 
 def log_pretty(logfunc, obj):
     logfunc(pprint.pformat(obj))
+
+
+def compare_versions(v1, v2):
+    """compare_versions
+
+    Returns True if v1 is at least as new as or newer than v2.
+
+    :param v1:
+    :param v2:
+    """
+
+    v1 = str(v1).strip()
+    v2 = str(v2).strip()
+
+    v1 = v1.split("-")[0]
+    v1 = [int(x) for x in v1.split(".")]
+
+    v2 = v2.split("-")[0]
+    v2 = [int(x) for x in v2.split(".")]
+
+    for i in range(min([len(v1), len(v2)])):
+        if v1[i] > v2[i]:
+            return True
+        if v1[i] < v2[i]:
+            return False
+
+    return True

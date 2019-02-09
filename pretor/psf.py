@@ -150,6 +150,14 @@ def psf_cli(argv=None):
         "--allow_no_toml", default=False, action="store_true", help=argparse.SUPPRESS
     )
 
+    # undocumented option to disable the minimum version check
+    parser.add_argument(
+        "--disable_version_check",
+        default=False,
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+
     parser.add_argument(
         "--force",
         "-F",
@@ -294,6 +302,19 @@ def psf_cli(argv=None):
             if args.section is None:
                 logging.error("Section was not specified.")
                 sys.exit(1)
+
+        if not args.disable_version_check:
+            if "minimum_version" in pretor_data:
+                if not util.compare_versions(
+                    constants.version, pretor_data["minimum_version"]
+                ):
+                    logging.error(
+                        "pretor.toml specific minimum Pretor version of "
+                        + "'{}', but installed version is '{}'".format(
+                            pretor_data["minimum_version"], constants.version
+                        )
+                    )
+                    sys.exit(1)
 
         logging.info("reading data from {}".format(args.source))
         psf = PSF()
