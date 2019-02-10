@@ -548,7 +548,7 @@ class PSF:
                     )
                 )
 
-                logging.debug(zlib.decompress(f.comment(this.forensic)).decode("utf-8"))
+                logging.debug(zlib.decompress(f.comment).decode("utf-8"))
 
             # load the pretor data file for the PSF
             try:
