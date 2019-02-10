@@ -510,7 +510,7 @@ class PSF:
 
         logging.debug("populating revID {} with dir {}".format(revID, path))
 
-        this.ID = uuid.uuid4()
+        this.ID = str(uuid.uuid4())
         logging.debug("ID={}".format(this.ID))
 
         rev = Revision(this, revID)
@@ -546,6 +546,7 @@ class PSF:
                     "archive {} has missing or invalid forensic data".format(
                         archive_path
                     )
+                logging.debug(zlib.decompress(f.comment(this.forensic)).decode("utf-8"))
                 )
 
             # load the pretor data file for the PSF
