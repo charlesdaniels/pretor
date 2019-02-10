@@ -7,3 +7,5 @@
 * Fixed pathlib compatibility on some versions of Python
 
 * Switched compression method to ZIP_DEFLATED for better compatibility
+
+* Fixed various minor issues that broke with pyinstaller
