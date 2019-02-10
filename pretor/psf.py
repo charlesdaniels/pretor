@@ -546,8 +546,9 @@ class PSF:
                     "archive {} has missing or invalid forensic data".format(
                         archive_path
                     )
-                logging.debug(zlib.decompress(f.comment(this.forensic)).decode("utf-8"))
                 )
+
+                logging.debug(zlib.decompress(f.comment(this.forensic)).decode("utf-8"))
 
             # load the pretor data file for the PSF
             try:
