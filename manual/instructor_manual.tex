@@ -319,5 +319,269 @@ Spring 1973  ABC123  2  jdeer   50
 Spring 1973  ABC123  2  jdoe    90  submitted late, -10%
 \end{verbatim}
 
+\section{Bonuses, Penalties \& Grade Calculation}
+
+Each grade contains a number of \textbf{categories}. A category has a maximum
+number of marks\footnote{Maximum marks on a category is determined by the
+associated course and assignment} and a number of assigned marks. A grade's raw
+score is simply
+$\frac{\sum\text{marks}_\text{max}}{\sum\text{marks}_\text{assigned}}$. The
+function of \textbf{categories} is to allow the instructor to provide greater
+granularity to assigned scores, and to accurate codify the categories of
+an assignment's rubric.
+
+\begin{wrapfigure}{l}{0.5\textwidth}
+
+	\centering
+
+	\begin{tabular}{c | c | c}
+
+		category & $\text{marks}_\text{max}$ & $\text{marks}_\text{assigned}$ \\
+		\hline\hline
+		all test cases pass & 50 & 40 \\
+		\hline
+		correct style & 30 & 25 \\
+		\hline
+		code is documented & 30 & 30 \\
+
+	\end{tabular}
+
+	\caption{\label{fig:category_example} Example categories and assigned
+	scores}
+
+\end{wrapfigure}
+
+Considering the example shown in figure \ref{fig:category_example}, the maximum
+raw marks for this grade would be $50+30+30=110$, and the assigned marks would
+be $40+25+30=95$, for a \textbf{raw score} of $\frac{95}{110} \approx 0.863$.
+Note that the total number of maximum marks does not need to sum to 100 (this
+example was deliberately constructed to demonstrate this).
+
+While bonuses may be given by simply entering marks higher than the maximum for
+a given category, this is not the suggested approach, as Pretor includes
+dedicated facilities for specifying bonuses (and penalties). The final score of
+a given grade is computed as: $g = \frac{m + b_m - p_m}{M} \cdot (1.0 + b - p)
++ B - P$ where:
+
+\begin{itemize}
+
+	\item $g$ is the final percent score in 0..1 (scores of higher than 1
+		may be possible with bonus)
+
+	\item $m$ is the number of earned marks on the assignment (sum of
+		category scores)
+
+	\item $b_m$ is the number of bonus marks on the assignment
+
+	\item $p_m$ is the number of penalty marks on the assignment
+
+	\item $M$ is the maximum number of marks on the assignment (sum of
+		category maxes)
+
+	\item $b$ is the bonus multiplier
+
+	\item $p$ is the penalty multiplier
+
+	\item $B$ is the score bonus
+
+	\item $P$ is the score penalty
+
+\end{itemize}
+
+The \texttt{grade.toml} file generated while \texttt{interact}-ing with a PSF
+with \texttt{pretor-grade} will automatically have appropriate fields for each
+type of bonus and penalty initialized to values that will provide no bonus and
+no penalty.
+
+Finally, to handle cases where the provided facilities are insufficient for
+assigning the desired grade, a \texttt{grade.toml} file may also specify a
+\texttt{override} field, which if provided, is unconditionally used as the
+final grade. Note that the \texttt{override} field is on a scale of $0..1$,
+such that a value of $1$ would be a $100\%$ score, although \texttt{override}
+is not bounded by $0..1$ (i.e. scores above $100\%$ or lower than $0\%$ may be
+assigned. This convention is used throughout Pretor except where noted.
+
+\pretoremph{\textbf{Hint:} Multiple penalties and bonuses can be
+mix-and-matched. For the sake of clarity, the example shown here only shows one
+penalty and one bonus applied at a time.}
+
+An example grading session is shown below demonstrating assigning bonuses,
+penalties, and overrides:
+
+\subsection{Example Grading Session}
+
+\subsubsection{Initial Grade}
+
+\begin{verbatim}
+$ pretor-grade --ingest submissions --coursepath coursedefs
+./
+INFO: Loading PSF file 'submissions/Spring 1973-ABC123-2-cad-Assignment 1.psf'
+PRETOR version 0.0.3-dev interactive grading shell.
+grader> next
+<PSF ID=c1a0b0a3-1972-4974-a890-25f97c270b4c>
+semester        Spring 1973
+section         2
+assignment      Assignment 1
+group           cad
+course          ABC123
+timestamp       2019-02-10 14:02:18.709983
+pretor_version  0.0.3-dev
+archive_name    submissions/Spring 1973-ABC123-2-cad-Assignment 1.psf
+PSF has NOT been graded
+grader> interact
+INFO: dropping you to a shell: bash --norc
+grading Assignment 1 by cad $ vim grade.toml
+grading Assignment 1 by cad $ cat grade.toml
+feedback = ""
+bonus_multiplier = 0.0
+bonus_marks = 0
+bonus_score = 0.0
+penalty_multiplier = 0.0
+penalty_marks = 0
+penalty_score = 0.0
+assignment_name = "Assignment 1"
+
+[categories]
+correctness = 50
+style = 20
+grading Assignment 1 by cad $ exit
+exit
+INFO: shell session terminated
+grader> showgrade
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  50     70         71.43%
+style        20     30         66.67%
+
+OVERALL MARKS: 70
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 70.00%
+
+OVERALL SCORE: 70.00%
+\end{verbatim}
+
+\subsubsection{Assigning a Bonus}
+
+\begin{verbatim}
+grader> interact
+INFO: dropping you to a shell: bash --norc
+grading Assignment 1 by cad $ vim grade.toml
+grading Assignment 1 by cad $ cat grade.toml
+feedback = ""
+bonus_multiplier = 0.0
+bonus_marks = 10
+bonus_score = 0.0
+penalty_multiplier = 0.0
+penalty_marks = 0
+penalty_score = 0.0
+assignment_name = "Assignment 1"
+
+[categories]
+correctness = 50
+style = 20
+grading Assignment 1 by cad $ exit
+exit
+INFO: shell session terminated
+grader> showgrade
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  50     70         71.43%
+style        20     30         66.67%
+BONUS MARKS  10     --         --
+
+OVERALL MARKS: 70
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 70.00%
+RAW SCORE NET OF BONUS/PENALTY MARKS: 80.00%
+
+OVERALL SCORE: 80.00%
+\end{verbatim}
+
+\subsubsection{Assigning a Penalty}
+
+\begin{verbatim}
+grader> interact
+INFO: dropping you to a shell: bash --norc
+grading Assignment 1 by cad $ vim grade.toml
+grading Assignment 1 by cad $ cat grade.toml
+feedback = ""
+bonus_multiplier = 0.0
+bonus_marks = 10
+bonus_score = 0.0
+penalty_multiplier = 0.1
+penalty_marks = 0
+penalty_score = 0.0
+assignment_name = "Assignment 1"
+
+[categories]
+correctness = 50
+style = 20
+grading Assignment 1 by cad $ exit
+exit
+INFO: shell session terminated
+grader> showgrade
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  50     70         71.43%
+style        20     30         66.67%
+BONUS MARKS  10     --         --
+
+OVERALL MARKS: 70
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 70.00%
+RAW SCORE NET OF BONUS/PENALTY MARKS: 80.00%
+
+PENALTY MULTIPLIER: 0.10
+SCORE NET OF BONUS/PENALTY MULTIPLIER: 72.00%
+
+OVERALL SCORE: 72.00%
+\end{verbatim}
+
+\subsubsection{Assigning an Override}
+
+\begin{verbatim}
+grader> interact
+INFO: dropping you to a shell: bash --norc
+grading Assignment 1 by cad $ vim grade.toml
+grading Assignment 1 by cad $ cat grade.toml
+feedback = ""
+bonus_multiplier = 0.0
+bonus_marks = 10
+bonus_score = 0.0
+penalty_multiplier = 0.10
+penalty_marks = 0
+penalty_score = 0.0
+assignment_name = "Assignment 1"
+override = 0.9
+
+[categories]
+correctness = 50
+style = 20
+grading Assignment 1 by cad $ exit
+exit
+INFO: shell session terminated
+grader> showgrade
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  50     70         71.43%
+style        20     30         66.67%
+BONUS MARKS  10     --         --
+
+OVERALL MARKS: 70
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 70.00%
+RAW SCORE NET OF BONUS/PENALTY MARKS: 80.00%
+
+PENALTY MULTIPLIER: 0.10
+SCORE NET OF BONUS/PENALTY MULTIPLIER: 72.00%
+
+SCORE HAS BEEN OVERRIDDEN BY GRADER
+
+OVERALL SCORE: 90.00%
+\end{verbatim}
 
 \end{document}

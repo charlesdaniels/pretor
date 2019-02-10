@@ -1,7 +1,7 @@
 .PHONY: clean all
 
 all: student_manual.pdf instructor_manual.pdf
-	for f in *.dot ; do rm -f "$$f" "$$(basename "$$f").pdf" ; done
+	for f in *.dot ; do rm -f "$$f" "$$(basename "$$f" .dot).pdf" ; done
 
 student_manual.pdf: student_manual.tex pretor.sty
 	latexmk -pdf student_manual.tex
