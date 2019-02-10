@@ -337,11 +337,11 @@ def psf_cli(argv=None):
         psf.metadata["timestamp"] = datetime.datetime.now()
         psf.metadata["pretor_version"] = constants.version
 
-        psf.forensic["hostname"] = socket.gethostname()
-        psf.forensic["timestamp"] = datetime.datetime.now()
-        psf.forensic["user"] = getpass.getuser()
-        psf.forensic["source_dir"] = args.source
-        psf.forensic["pretor_version"] = constants.version
+        psf.forensic["hostname"] = str(socket.gethostname())
+        psf.forensic["timestamp"] = str(datetime.datetime.now())
+        psf.forensic["user"] = str(getpass.getuser())
+        psf.forensic["source_dir"] = str(args.source)
+        psf.forensic["pretor_version"] = str(constants.version)
 
         # write output file
         if args.name is None:
