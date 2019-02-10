@@ -9,3 +9,8 @@
 * Switched compression method to ZIP_DEFLATED for better compatibility
 
 * Fixed various minor issues that broke with pyinstaller
+
+* pretor-psf how stores the Pretor version and PSF format revision number in
+  each PSF file. PSFs with missing format revisions are assumed to be revision
+  0, which is the current. PSFs with newer format revisions will not be
+  unpacked.
