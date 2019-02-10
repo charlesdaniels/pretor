@@ -5,4 +5,6 @@ import zipfile
 
 version = "0.0.2-dev"
 
+psf_format_revision = 0
+
 compress_type = zipfile.ZIP_DEFLATED
