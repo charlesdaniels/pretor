@@ -254,6 +254,9 @@ class Grade:
         data["penalty_marks"] = this.penalty_marks
         data["penalty_score"] = this.penalty_score
 
+        if this.override is not None:
+            data["override"] = this.override
+
         # this is required because the PSF archive loader stores the entire
         # course definition, and we need to know which specific assignment
         # to load
