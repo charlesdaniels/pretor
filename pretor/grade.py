@@ -350,6 +350,9 @@ class Grade:
                 score_bonus * 100
             )
 
+        if this.override is not None:
+            s += "SCORE HAS BEEN OVERRIDDEN BY GRADER\n\n"
+
         s += "OVERALL SCORE: {:3.2f}%\n".format(this.get_score() * 100)
 
         return s
