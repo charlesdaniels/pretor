@@ -123,7 +123,7 @@ First, \texttt{cd} into your project directory:
 
 Now, call \texttt{pretor-psf} to pack up your project.
 
-\texttt{\$ pretor-psf --create}
+\texttt{\$ pretor-psf -{}-create}
 
 An example output of this command for a user named \texttt{cad} might be:
 
@@ -140,13 +140,13 @@ INFO: PSF written to '/home/cad/Desktop/Fall 2019-CSCE313-1-cad-Assignment 1.psf
 By default, the group ID stored in your assignment file is simply the username
 you are logged into your computer with.  In the case of group projects, or if
 you need to specify a student ID which is different from the username of the
-logged in user, you may do so by specifying the \texttt{--group} flag. For
+logged in user, you may do so by specifying the \texttt{-{}-group} flag. For
 example, if you were part of the group "group1", you might run the command:
 
-\texttt{\$ pretor-psf --create --group group1}
+\texttt{\$ pretor-psf -{}-create -{}-group group1}
 
 \pretoremph{\textbf{Hint}: you can heck the group ID that generated a PSF
-file with the command \texttt{\$ pretor-psf --metadata --input SOME\_FILE.psf}}
+file with the command \texttt{\$ pretor-psf -{}-metadata -{}-input SOME\_FILE.psf}}
 
 \subsection{Troubleshooting}
 
@@ -176,7 +176,7 @@ special instructions your professor may have provided.
 This error message indicates that the target output file that
 \texttt{pretor-psf} would generate already exists. If you definitely want to
 replace this file, you can either move or delete it, or you can use the
-\texttt{--force} flag to \texttt{pretor-psf}, which will cause it to overwrite
+\texttt{-{}-force} flag to \texttt{pretor-psf}, which will cause it to overwrite
 the file.
 
 \end{document}

@@ -153,21 +153,21 @@ a typical Pretor grading workflow looks like this:
 
 You can begin an interactive grading session with the command
 \texttt{pretor-grade}. \texttt{pretor-grade} has many useful parameters you
-should explore\footnote{see \texttt{pretor-grade --help}}, but the most
-important are \texttt{--ingest}, \texttt{--outputdir}, and
-\texttt{--coursepath}.
+should explore\footnote{see \texttt{pretor-grade -{}-help}}, but the most
+important are \texttt{-{}-ingest}, \texttt{-{}-outputdir}, and
+\texttt{-{}-coursepath}.
 
-\paragraph{\texttt{--ingest}} is used to specify a directory where you have
+\paragraph{\texttt{-{}-ingest}} is used to specify a directory where you have
 downloaded your PSFs. This directory is searched recursively for
 \texttt{*.psf}, all of which are loaded into your grading REPL before it
 begins. You can also ingest PSFs after launching via the \texttt{ingest}
 command.
 
-\paragraph{\texttt{--outputdir}} when you finish grading an assignment and mark
+\paragraph{\texttt{-{}-outputdir}} when you finish grading an assignment and mark
 it as finalized, the resulting PSF will be stored in this directory. If
 unspecified, they'll be placed in your working directory.
 
-\paragraph{\texttt{--coursedir}} specifies the directory where your course
+\paragraph{\texttt{-{}-coursedir}} specifies the directory where your course
 definition file(s) are stored. When you begin grading a PSF, the course name
 and assignment name specified in the submission's \texttt{pretor.toml} are
 looked up by recursive search through every TOML in your configured coursedir.
