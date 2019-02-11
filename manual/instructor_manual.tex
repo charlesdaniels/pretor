@@ -584,4 +584,109 @@ SCORE HAS BEEN OVERRIDDEN BY GRADER
 OVERALL SCORE: 90.00%
 \end{verbatim}
 
+\section{Constructing \texttt{pretor.toml} Files}
+
+\section{Constructing Course Definitions}
+
+As the instructor for a course, you will need to write a course definition file
+for your course. This codifies the set of assignments (or other graded
+materials), their relative weights within the course, and their rubrics.
+
+For a Pretor grade to be meaningful, it must be associated with a
+\textbf{course definition}. When you \texttt{interact} with a PSF in
+\texttt{pretor-grade}, the course name field (\texttt{course}) of it's
+\texttt{pretor.toml} file is searched for among all course definition files in
+the specified course directory for one with a matching \texttt{name} field.
+
+\pretoremph{\textbf{Note:} When you grade a PSF with \texttt{pretor-grade}, the
+course definition used at the time is "burned in" to the output PSF. This is to
+ensure that future modifications to the course definition will not
+retro-actively change existing grades.  }
+
+A course definition file may have any name the author finds descriptive, but
+must have the extension \texttt{.toml}. At a minimum a course definition must
+define a section named \texttt{course} containing a key named \texttt{name},
+which must specify the course name (which is matched against the
+\texttt{course} in \texttt{pretor.toml} files). The \texttt{course} section may
+also optionally contain a \texttt{description} field, which is an arbitrary
+human-readable string for reference purposes.
+
+All other sections in the course definition file may have arbitrary names, and
+correspond to assignment rubrics. Each such section must define a \texttt{name}
+field which is matched against the \texttt{assignment} field in
+\texttt{pretor.toml} files, as well as a floating point \texttt{weight} field
+defining the assignment's weight\footnote{Course definition \texttt{weight}
+fields assume that a perfect score in the course is $1.0$.}. An optional
+\texttt{description} field may be defined as well. Finally, each additional
+field specified is assumed to define the maximum number of marks on a rubric
+category.
+
+\pretoremph{\textbf{Best Practice}: is to store all of your course definition
+files in a single directory, so you can easily reference them via
+\texttt{pretor-grade}.}
+
+An example course definition file is shown below:
+
+\begin{verbatim}
+[course]
+name = "ABC123"
+description = "Imaginary course for testing Pretor."
+
+[assignment_1]
+name = "Assignment 1"
+description = "Description for the first assignment"
+weight = 0.05
+correctness = 70
+style = 30
+
+[assignment_2]
+name = "Assignment 2"
+description = "Description for the second assignment"
+weight = 0.1
+correctness = 70
+style = 30
+
+[assignment_3]
+name = "Assignment 3"
+description = "Description for the third assignment"
+weight = 0.1
+correctness = 70
+style = 30
+
+[midterm]
+name = "Midterm"
+weight = 0.2
+problem_1 = 10
+problem_2 = 10
+problem_3 = 10
+problem_4 = 70
+
+[quiz1]
+name = "Quiz 1"
+weight = 0.1
+problem_1 = 10
+problem_2 = 10
+problem_3 = 10
+
+[quiz2]
+name = "Quiz 2"
+weight = 0.1
+problem_1 = 10
+problem_2 = 10
+problem_3 = 10
+problem_4 = 10
+problem_5 = 10
+
+[final]
+name = "Final Exam"
+weight = 0.35
+problem_1 = 10
+problem_2 = 10
+problem_3 = 10
+problem_4 = 30
+problem_5 = 20
+problem_6 = 20
+problem_7 = 10
+\end{verbatim}
+
 \end{document}
