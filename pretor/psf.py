@@ -322,11 +322,18 @@ def psf_cli(argv=None):
 
         # flag use of --no_meta_check
         if args.no_meta_check:
-            psf.metadata["invalid_no_meta_check"] = True
+            psf.metadata["no_meta_check"] = True
+            psf.forensic["no_meta_check"] = True
 
         # flag use of --allow_no_toml
         if args.allow_no_toml:
             psf.metadata["allow_no_toml"] = True
+            psf.forensic["allow_no_toml"] = True
+
+        # flag use of disable_version_check
+        if args.disable_version_check:
+            psf.metadata["disable_version_check"] = True
+            psf.forensic["disable_version_check"] = True
 
         logging.info("generating metadata... ")
         psf.metadata["semester"] = args.semester

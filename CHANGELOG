@@ -14,3 +14,8 @@
   each PSF file. PSFs with missing format revisions are assumed to be revision
   0, which is the current. PSFs with newer format revisions will not be
   unpacked.
+
+0.0.3:
+
+* --no_meta_check, --allow_no_tom, and --disable_version_check now write keys
+  into both metadata and forensic data.

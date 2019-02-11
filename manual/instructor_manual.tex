@@ -586,6 +586,101 @@ OVERALL SCORE: 90.00%
 
 \section{Constructing \texttt{pretor.toml} Files}
 
+When a student generates a PSF from a project directory, \texttt{pretor-psf}
+uses the \texttt{pretor.toml} file in the top-level directory of the project to
+"burn in" metadata such as the assignment, course, semester, and section
+number. While this information can also be supplied using command-line
+arguments\footnote{see \texttt{pretor-psf -{}-help}}, the use of
+\texttt{pretor.toml} reduces the potential for human error which is important
+given that metadata fields are often matched using exact string comparison.
+
+Typically, the instructor for a course will write a \texttt{pretor.toml} file
+for each assignment (and possibly for each section\footnote{According to the
+needs of the specific course, the section number/identifier may be provided via
+\texttt{pretor.toml} or via \texttt{pretor-psf -{}-section}}. The
+\texttt{pretor.toml} file may either be provided to students with an assignment
+template, or by asking students to download and install it into their projects.
+
+A \texttt{pretor.toml} file may define any of the following fields:
+
+\begin{itemize}
+
+	\item \texttt{exclude} -- a list of glob patterns to exclude from being
+		included in the generated PSF
+
+	\item \texttt{course} -- the string name of the course, i.e. "CS101"
+
+	\item \texttt{section} -- the section identifier\footnote{Note that the
+		section identifier does not have to be numeric, although
+		it is occasionally referred to as such. The section identifier
+		is stored as a string to avoid constraining University section
+		numbering conventions}
+
+	\item \texttt{semester} -- the string name of the semester, i.e.
+		"Spring 1994"
+
+	\item \texttt{assignment} -- the string name of the assignment, i.e.
+		"Assignment 1"
+
+	\item \texttt{minimum\_version} -- the minimum Pretor version which
+		can be used to pack this assignment as a string, i.e. "0.0.2"
+
+\end{itemize}
+
+\subsection{A Sample \texttt{pretor.toml}}
+
+\begin{verbatim}
+assignment = "Assignment 1"
+section = 2
+semester = "Spring 1973"
+course = "ABC123"
+exclude = ["*.o"]
+\end{verbatim}
+
+\subsection{Bypassing Metadata Checks}
+
+\pretoremph{ \textbf{Danger Zone}: The information in this section will allow
+you to generate PSFs with missing or incorrect metadata which may impede
+grading. }
+
+\pretoremph{ \textbf{Students Beware}: As this documentation is distributed
+publicly, it is entirely possible that student users of Pretor may stumble upon
+this information. The procedures described here are deliberately hidden from
+the "help" information of \texttt{pretor-psf} to protect you from "shooting
+yourself in the foot". Using these procedures has the potential to make your
+submissions significantly more difficult to grade for your instructor, which is
+unlikely to endear you to them. Consider yourself warned.}
+
+Pretor features three checks to help prevent user error on the part of students
+while packing assignments to PSF for submission. These may be disabled via
+(intentionally) undocumented options to \texttt{pretor-psf}. In some cases, it
+may be necessary for an instructor, developer, or administrator to bypass one
+or more of these checks. The correct procedures to do so are documented below.
+
+\paragraph{Metadata Check} This check requires that all of the metadata fields
+"semester", "section", "assignment", "group", and "course" are specified either
+via command-line arguments, or via \texttt{pretor.toml}. It may be disabled via
+the flag \texttt{-{}-no\_meta\_check}. Specifying this flag will assert the key
+\texttt{no\_meta\_check} in both the forensic information and metadata of the
+generated PSF.
+
+\paragraph{\texttt{pretor.toml} Check} This check requires that the top level
+directory of the submission directory contains a \texttt{pretor.toml} file.
+This is intended to catch cases of users accidentally specifying the wrong
+directory to generate a PSF from. This check may be disabled using
+\texttt{-{}-allow\_no\_toml}, doing so will assert the key
+\texttt{allow\_no\_toml} in both the forensic information and metadata of the
+generated PSF.
+
+\paragraph{Version Check} This check allows an instructor to specify a minimum
+Pretor version to be used for packing the assignment via the
+\texttt{minimum\_version} key of \texttt{pretor.toml}. This is so that if a
+future Pretor version adds a new feature that is needed to correctly pack the
+submission, student users will not accidentally use an outdated version.  This
+check may be bypassed using the flag \texttt{-{}-disable\_version\_check},
+which will assert the field \texttt{disable\_version\_check} in both the
+forensic information and metadata of the generated PSF.
+
 \section{Constructing Course Definitions}
 
 As the instructor for a course, you will need to write a course definition file
@@ -625,7 +720,7 @@ category.
 files in a single directory, so you can easily reference them via
 \texttt{pretor-grade}.}
 
-An example course definition file is shown below:
+\subsection{A Sample Course Definition File}
 
 \begin{verbatim}
 [course]
@@ -688,5 +783,178 @@ problem_5 = 20
 problem_6 = 20
 problem_7 = 10
 \end{verbatim}
+
+\section{Advanced Grading REPL Topics}
+
+\pretoremph{\textbf{Note}: The full array of commands available in the grading
+REPL is not documented here, you can use \texttt{help} to view a list of
+commands or \texttt{help <command>} to view documentation for a specific
+command.}
+
+The Pretor grading REPL (accessed via \texttt{pretor-grade}) is in fact a
+robust domain-specific language for interacting with Pretor's internal data
+structures. Although it is intentionally not Turing-complete\footnote{It is in
+fact possible that the grading REPL is Turing-complete, but this has been
+deliberately not investigated, as it is not intended to be. Don't turn your
+grading workflow into a Turing tarpit. You have been warned}, the grading
+REPL contains many useful features including:
+
+\begin{itemize}
+
+	\item A user readable and writable symbol table for handling
+		runtime configuration (an entry in the symbol table is
+		conceptually equivalent to a variable).
+
+	\item A convenient method to view the REPL's internal state -- via
+		rad-only entries in the symbol table.
+
+	\item History (via the \texttt{history} command) and tab completion.
+
+	\item Capability to execute shell commands by prefixing them with
+		\texttt{!}, i.e. \texttt{!echo hello}.
+
+	\item Basic error handling and recovery facilities.
+
+\end{itemize}
+
+\subsection{The Symbol Table}
+
+The symbol table can be directly interacted with via three main commands:
+
+\begin{itemize}
+
+	\item \texttt{symtab} -- display all symbols in the symbol table and
+		their current values. Note that symbols prefixed with
+		\texttt{\#} are read-only, and are generally used internally for
+		book-keeping by the REPL.
+
+	\item \texttt{get} -- get the value of a single symbol (i.e.
+		\texttt{get symname}).
+
+	\item \texttt{set} -- set the value of a single symbol (i.e.
+		\texttt{set symname newval}). The old value is returned as the
+		result of the command.
+
+\end{itemize}
+
+The symbols in the symbol table are documented in figure \ref{fig:symtab}. Note
+that additional symbols may be added by custom RC scripts or via plugins.
+
+\begin{figure}[H]
+
+	\centering
+
+	\begin{tabular}{p{0.2\textwidth} | p{0.7\textwidth}}
+
+		Symbol & Purpose \\ \hline\hline
+
+		\texttt{\#result} & The result of the most recently
+		executed command, this is displayed to the console after the
+		command finishes running. \\ \hline
+
+		\texttt{\#lastresult} & The result of the second most recently
+		executed command. \\ \hline
+
+		\texttt{\#status} & True if the command finished successfully,
+		otherwise False. \\ \hline
+
+		\texttt{\#lastatatus} & The status for the previous command. \\
+		\hline
+
+		\texttt{\#error} & The error text if an error occurred by the
+		command.  \\ \hline
+
+		\texttt{\#finalized} & A list of indices of \#psf which have
+		been finalized already \\ \hline
+
+		\texttt{\#argv} & Split list of arguments to the current
+		command. \\ \hline
+
+		\texttt{\#psf} & A list of currently loaded PSF objects. \\
+		\hline
+
+		\texttt{coursepath} & \texttt{:}-delimited list of directories
+		to search for course definition files in. \\ \hline
+
+		\texttt{outputdir} & The directory where finalized PSFs are
+		written to. \\ \hline
+
+		\texttt{revision} & The revision to interact with when using
+		the \texttt{interact} command. If empty, an appropriate value
+		is generated automatically. This may be overridden to inspect
+		a specific revision in a PSF. \\ \hline
+
+		\texttt{base\_revision} & The revision to use as the base
+		ungraded revision submitted by the student. This usually does
+		not need to be modified \\
+
+	\end{tabular}
+
+	\caption{\label{fig:symtab} Table of symbols and their purposes.}
+
+\end{figure}
+
+\subsection{Writing a RC File}
+
+By default, all commands stored in \texttt{~/.config/pretor/rc} are executed in
+order when the REPL starts up. The file used for this purpose may be overridden
+via \texttt{pretor-grade -{}-rc}. Lines beginning with the \texttt{\#}
+character are ignored to facilitate leaving comments.
+
+This file is useful for setting up configuration options that will be used on a
+regular basis. For example, the course definition search path, or finalized PSF
+output directory might be defined here to avoid needing to specify these for
+each grading session.
+
+\section{Exporting Grades}
+
+Grades may be exported for upload to a LMS\footnote{Learning Management System,
+such as Moodle, Blackboard, et. al.}. This is accomplished via the
+\texttt{pretor-export} command. This command iterates over a collection of PSF
+files and generates output in one of several formats. For full documentation,
+see \texttt{pretor-export -{}-help}.
+
+The Moodle formatted output\footnote{Obtained via the \texttt{-{}-moodle}
+flags}, which is simply a text CSV format, is likely the most amenable to the
+application of your own automation, and should be well suited for parsing with
+tools such as Excel, LibreOffice, or
+xsv\footnote{\url{https://github.com/BurntSushi/xsv}}.
+
+\subsection{Sample Usage of \texttt{pretor-export}}
+
+\begin{verbatim}
+$ pretor-export --input *.psf --moodle
+"Spring 1973","ABC123",2,"cad",100.0,""
+$ pretor-export --input *.psf --table
+Spring 1973  ABC123  2  cad  100
+$ pretor-psf --scorecard --input Spring\ 1973-ABC123-2-cad-Assignment\ 1.psf
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  70     70         100.00%
+style        30     30         100.00%
+
+OVERALL MARKS: 100
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 100.00%
+
+OVERALL SCORE: 100.00%
+\end{verbatim}
+
+\chapter{The Pretor Submission File (PSF) Format}
+
+\section{File Structure}
+
+\section{Forensic Information}
+
+\section{Hand-Editing Pretor Submission Files}
+
+\chapter{Pretor for Systems Administrators}
+
+\section{Deploying Pretor with \texttt{pip}}
+
+\section{Deploying Pretor with \texttt{pyinstaller}}
+
+
 
 \end{document}

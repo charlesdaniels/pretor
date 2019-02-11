@@ -96,7 +96,7 @@ class REPL(cmd.Cmd):
 
         sys.exit(0)
 
-    def do_history(this):
+    def do_history(this, arg):
         """history
 
 Return a list of previously entered commands
