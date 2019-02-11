@@ -149,7 +149,7 @@ a typical Pretor grading workflow looks like this:
 
 \chapter{Grading With Pretor}
 
-\section{Grading Basics}
+\section{Grading Basics} \label{sec:grading_basics}
 
 You can begin an interactive grading session with the command
 \texttt{pretor-grade}. \texttt{pretor-grade} has many useful parameters you
@@ -319,7 +319,7 @@ Spring 1973  ABC123  2  jdeer   50
 Spring 1973  ABC123  2  jdoe    90  submitted late, -10%
 \end{verbatim}
 
-\section{Bonuses, Penalties \& Grade Calculation}
+\section{Bonuses, Penalties \& Grade Calculation} \label{sec:grade_calculation}
 
 Each grade contains a number of \textbf{categories}. A category has a maximum
 number of marks\footnote{Maximum marks on a category is determined by the
@@ -681,7 +681,7 @@ check may be bypassed using the flag \texttt{-{}-disable\_version\_check},
 which will assert the field \texttt{disable\_version\_check} in both the
 forensic information and metadata of the generated PSF.
 
-\section{Constructing Course Definitions}
+\section{Constructing Course Definitions} \label{sec:course_definitions}
 
 As the instructor for a course, you will need to write a course definition file
 for your course. This codifies the set of assignments (or other graded
@@ -943,7 +943,103 @@ OVERALL SCORE: 100.00%
 
 \chapter{The Pretor Submission File (PSF) Format}
 
+\section{Pretor Submission File Format Revisions}
+
+PSF includes in it a format revision number, which is in place to allow future
+versions of Pretor to detect files created by older versions. The history of
+each version is documented here.
+
+\begin{figure}[H]
+
+	\centering
+
+	\begin{tabular}{ c | c | c | p{0.6\textwidth}}
+
+		\rotatebox{90}{format revision} & \rotatebox{90}{introduced} &
+		\rotatebox{90}{deprecated} & Changes \\ \hline\hline
+
+		0 & 0.0.1 & cur. & Initial PSF format revision. \\
+
+	\end{tabular}
+
+	\caption{\label{fig:revhist} History PSF format revisions}
+
+\end{figure}
+
 \section{File Structure}
+
+All PSFs are valid zip files\footnote{See also the PKZIP Application Note:
+\url{https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT}}, but use the
+\texttt{.psf} file extension for clarity. The metadata and other information
+pertaining to a given PSF is stored as plain files in the zip, which are
+enumerated in figure \ref{fig:zipstruct}.
+
+\begin{figure}[H]
+
+	\centering
+
+	\begin{tabular}{l | p{0.6\textwidth}}
+
+		Path & Purpose \\ \hline\hline
+
+		\texttt{/pretor\_version} & Plain-text file containing the
+		Pretor version string of the Pretor instance which created this
+		file. \\ \hline
+
+		\texttt{/psf\_format\_revision} & Plain-text file containing
+		the integer PSF Format Revision as a string. \\ \hline
+
+		\texttt{/pretor\_data.toml} & A TOML formatted file containing
+		various data about the PSF, see
+		$\S$\ref{sec:pretor_data_schema}. \\ \hline
+
+		\texttt{/revisions/} & Directory containing information about
+		revisions in this PSF, see
+		$\S$\ref{sec:understanding_revisions}. \\ \hline
+
+		\texttt{/revisions/*/rev\_data.toml} & A TOML formatted file
+		containing information about a given revision. See
+		$\S$\ref{sec:rev_data_schema}. \\ \hline
+
+		\texttt{/revisions/*/grade.toml} & A TOML formatted file
+		containing the grade for a given revision, see $\S$
+		\ref{sec:grading_basics} and $\S$\ref{sec:grade_calculation}.
+		This file is optional. \\ \hline
+
+		\texttt{/revisions/*/course.toml} & A TOML formatted file
+		containing the course definition associated with a given
+		revision's grade, see $\S$\ref{sec:course_definitions}. If
+		\texttt{grade.toml} is present, this file must also be present,
+		and vice-versa. \\ \hline
+
+		\texttt{/revisions/*/contents/} & This directory contains the
+		files which are associated with the revision. It may contain
+		any arbitrary file structure as is desired. \\ \hline
+
+	\end{tabular}
+
+	\caption{\label{fig:zipstruct} Table showing the purpose of each file
+	within a PSF formatted zip. \texttt{/} is assumed to be the top-level
+	of the zip.}
+
+\end{figure}
+
+\subsection{Understanding Revisions} \label{sec:understanding_revisions}
+
+The PSF format and associated data model support usage as a system for tracking
+arbitrary revisions, although none of the user interfaces provided by Pretor
+permit this directly. Instead, the chain of revisions (similar to git commits)
+is always kept linear, beginning with a base revision (generally
+\texttt{submission} created by \texttt{pretor-psf}), with an intervening chain
+of grade revisions (named by the pattern \texttt{grade\_[0-9]+} ascending).
+
+The purpose of this system is to provide an easily-audit-able record of the
+exact data the student turned in, as well as their grade and every revision
+made to that grade.
+
+\subsection{The \texttt{pretor\_data} Schema} \label{sec:pretor_data_schema}
+
+\subsection{The \texttt{rev\_data} Schema} \label{sec:rev_data_schema}
 
 \section{Forensic Information}
 
