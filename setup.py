@@ -1,8 +1,9 @@
 from setuptools import setup
 from setuptools import find_packages
 
-short_description = \
-    'TODO'
+from pretor import constants
+
+short_description = "Next-generation grading assistant"
 
 long_description = '''
 PRETOR - PRogram Evaluation TOol Rebuilt
@@ -22,15 +23,15 @@ classifiers = [
     ]
 
 setup(name="pretor",
-      version="TODO",
+      version=constants.version,
       description=short_description,
       long_description=long_description,
       author="Charles Daniels",
       author_email="cdaniels@fastmail.com",
-      url="TODO",
+      url="https://github.com/charlesdaniels/pretor",
       license='BSD',
       classifiers=classifiers,
-      keywords='TODO',
+      keywords=["grading", "computer science"],
       packages=find_packages(),
       entry_points={'console_scripts':
           ['pretor-psf=pretor.psf:psf_cli',

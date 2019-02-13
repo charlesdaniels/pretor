@@ -894,9 +894,9 @@ that additional symbols may be added by custom RC scripts or via plugins.
 
 \end{figure}
 
-\subsection{Writing a RC File}
+\subsection{Writing a RC File} \label{sec:rcfile}
 
-By default, all commands stored in \texttt{~/.config/pretor/rc} are executed in
+By default, all commands stored in \texttt{\textasciitilde/.config/pretor/rc} are executed in
 order when the REPL starts up. The file used for this purpose may be overridden
 via \texttt{pretor-grade -{}-rc}. Lines beginning with the \texttt{\#}
 character are ignored to facilitate leaving comments.
@@ -1035,22 +1035,187 @@ of grade revisions (named by the pattern \texttt{grade\_[0-9]+} ascending).
 
 The purpose of this system is to provide an easily-audit-able record of the
 exact data the student turned in, as well as their grade and every revision
-made to that grade.
+made to that grade. Internally, a revision is simply a directory within the zip
+file storing normal files. At time of writing, Pretor supports neither diff-ing
+revisions, nor storing only files changed between revisions.
 
 \subsection{The \texttt{pretor\_data} Schema} \label{sec:pretor_data_schema}
 
+The \texttt{pretor\_data.toml} file must contain the following keys:
+
+\begin{itemize}
+
+	\item \texttt{pretor\_version} -- the version string of the Pretor
+		instance which packed this PSF.
+
+	\item \texttt{ID} -- UUID of this PSF. At time of writing, the ID field
+		is unused, but in the future it may be used as a primary key
+		for differentiating PSFs.
+
+	\item \texttt{revisions} -- a list of revision IDs which this PSF
+		contains. Only revisions in this list will be considered, even
+		if the relevant directories exist in \texttt{revisions/}.
+
+\end{itemize}
+
+The \texttt{pretor\_data.toml} file may optionally contain the
+\texttt{metadata} key, which may be used to store arbitrary metadata. Although
+the underlying PSF implementation imposes no special restrictions on the schema
+of this field, other portions of Pretor assume that this is a key-value-pair
+store in the form of a dictionary, usually a superset of the information
+provided in \texttt{pretor.toml} in the original directory used to generate the
+PSF.
+
 \subsection{The \texttt{rev\_data} Schema} \label{sec:rev_data_schema}
+
+The \texttt{rev\_data.toml} must contain the \texttt{ID} field (which stores
+the revision ID as as a string), and the \texttt{contents} field, which stores
+a list of files (as relative paths from the relevant \texttt{contents/}
+directory). It may also optionally contain a \texttt{parentID} field, which is
+the revision ID of the parent revision, if any; an omission of this field
+implies that this revision has no parent.
 
 \section{Forensic Information}
 
-\section{Hand-Editing Pretor Submission Files}
+\pretoremph{\textbf{Note}: The forensic data stored by Pretor is not encrypted,
+or is it signed. Any attacker with an understanding of the Pretor source code
+who has ever possessed a given PSF could modify the forensic data in arbitrary
+ways.}
+
+Every PSF contains forensic metadata which is burned into the zip in a fashion
+which is deliberately not documented. The manner in which this data is attached
+to the zip file is unrelated to the normal storing of file and directory
+entries within the zip. This is intended to keep honest students honest by
+recording various information about who packed the PSF and on what machine. It
+is assumed that the lack of accessible documentation regarding this data will
+act as it's own deterrent, in that students who are capable of sussing out the
+means by which the forensic data is stored from the source code would have no
+reason to tamper with it. A PSF with missing forensic information is still
+perfectly valid, though first-party Pretor tooling will throw warnings if it is
+missing.
+
+The forensic data stored within a PSF may be viewed using the \texttt{forensic}
+command in \texttt{pretor-grade}, or via \texttt{pretor-psf -{}-forensic}.
+
+If an instructor has reason to believe that a student submission may have been
+tampered with (such as altering the creation timestamp or group ID), then they
+are encouraged to inspect the forensic data of any relevant PSFs. Forensic
+information containing information which is inconsistent with the metadata of
+the same file suggests that the PSFs contents have been tampered
+with\footnote{Note that the timestamp stored in the forensic data by
+\texttt{pretor-psf} is generated separately from the timestamp stored in the
+metadata, it is normal for the two to differ by up to several seconds.}.
 
 \chapter{Pretor for Systems Administrators}
 
+The student-facing component of Pretor consists only of the \texttt{pretor-psf}
+command. In a lab environment where instructors will be grading on a different
+set of machines, only this component of Pretor needs to be installed. However,
+it is often easier to simply install the entirety of the package. This chapter
+documents several approaches to accomplish this.
+
+At time of writing, Pretor does not have any system-wide configuration files
+which need to be managed, although you may wish to provide a "default"
+RC file (see $\S$\ref{sec:rcfile}) for graders to use. At this time, the only
+way to accomplish this is by placing said file in the user's home directory.
+
+Additionally, you may wish to place all course definition files which
+instructors in your environment may be using in a convenient central location,
+such as \texttt{/etc}. Be aware however that your instructors will likely need
+to make tweaks to these files throughout each semester.
+
+\section{Deploying Pretor with \texttt{dpkg}}
+
+Via the \texttt{python3-stdeb} package, Pretor (or any other setuptools based
+Python package) may be used to generate a dpkg-compatible \texttt{.deb} file.
+Beginning with 0.0.3, regular Pretor releases include a pre-built \texttt{.deb}
+file. Such a file may be generated by the command: \texttt{python3 setup.py
+--command-packages=stdeb.command bdist\_deb}. The relevant binary file will be
+created in \texttt{deb\_dist/}.
+
+At time of writing, this is the suggested approach for production installations
+of Pretor.
+
 \section{Deploying Pretor with \texttt{pip}}
+
+Pretor uses \texttt{setuptools} and may be installed as a standard Python
+package via \texttt{python3 setup.py install}.
 
 \section{Deploying Pretor with \texttt{pyinstaller}}
 
+At present, only \texttt{pretor-psf} may be distributed as a
+pyinstaller-created binary. This is to facilitate easy distribution to students
+without needing to account for dependencies or other considerations.
 
+For those Pretor components which support distribution in this fashion, wrapper
+scripts are provided in the \texttt{pyinstaller/} directory of the Pretor
+source distribution. Each can be used to generate a binary via the
+\texttt{pyinstaller --onefile pyinstaller/<filename>.py} command. Generated
+binaries are placed in \texttt{dist/}.
+
+Regular Pretor releases to not include pyinstaller-based binary builds.
+
+\section{Security Considerations}
+
+Pretor (in particular \texttt{pretor-grade}) inherently involves consuming
+arbitrary files provided by students and executing code stored within them.
+This is necessary for the purpose of grading computer science programming
+assignments. Precautions are taken to reduce the changes of a maliciously
+constructed input causing damage to the host system, but ultimately the
+PSF de-serialization methods rely on Python's ZIP and TOML implementations.
+To that end, security advisories relating to Python or it's ZIP or TOML
+packages will also relate to Pretor.
+
+Be aware also that \texttt{pretor-grade} is not indented to "contain" it's
+user.  The interpreter features shell escapes, and a standard and commonly used
+interpreter command spawns a Bash instance. You should not allow people to run
+\texttt{pretor-grade} on systems that you do not wish them to have shell access
+to.
+
+\section{System Requirements}
+
+Pretor officially supports Python 3.5, 3.6, and 3.7 running on Ubuntu 16.04 or
+Ubuntu 18.04. Pretor depends on language features not implemented until Python
+3.5, namely pathlib and type hinting. It is unlikely to work in older Python
+versions, though it may with appropriate back porting. Versions of Python older
+than 3.5 are not, and never will be officially supported. New Python releases
+will be tracked as they become available, and you can expect Pretor to continue
+working with new Python releases for as long as Pretor continues to be
+maintained.
+
+Pretor should be "well behaved", in that it does not generally make dangerous
+assumptions such as "paths are strings". It is expected to work on any system,
+including Windows, where appropriate Python versions are available, although
+bear in mind that Bash is a requirement for grading. Pretor is not actively
+tested on systems other than those noted, and support cannot be guaranteed.
+
+\section{Licensing}
+
+\pretoremph{\textbf{Disclaimer}: nothing in this section is legal advice, nor
+is anything in this section a part of the Pretor license. This section is
+provided only to act as a reminder of Pretor's license and your
+responsibilities stemming therefrom. This section is not an exhaustive list or
+summary of responsibilities, rights, or any other information pertaining to or
+contained in the Pretor license. In any case where content in this section
+might conflict with the Pretor license through author error or otherwise, the
+Pretor license takes precedence.}
+
+Pretor is AGPL licensed, as noted prominently in the README of the source
+distribution. You should become familiar with the terms of this license if you
+are not already. Keep in mind that while Pretor may be used as an
+"application server", such as for batch-processing of grades, all users of any
+such service are entitled to it's source code.
+
+While development in may forms, such as forks, upstream contributions, plugins,
+or by using Pretor as a library are all encouraged, Pretor is not intended to
+be used as a commercial or for-profit product. The AGPL license was
+specifically selected to prevent individuals or other legal entities from
+creating closed-source forks or distributions of Pretor.
+
+To clarify one potential gray area, the Pretor authors do not consider work
+submitted by students via Pretor to be derivative works, and are
+consequentially exempt for the Pretor license. In other words, the use of
+Pretor in an academic environment has no effect on the licensing or ownership
+of student code.
 
 \end{document}
