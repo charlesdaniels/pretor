@@ -262,13 +262,14 @@ def psf_cli(argv=None):
                 # handle version checking
                 util.log_exception(e)
                 if not args.disable_versioncheck:
-                    logging.error("Installed pretor version is too old to " +
-                            "load {}.".format(pretor_path))
+                    logging.error(
+                        "Installed pretor version is too old to "
+                        + "load {}.".format(pretor_path)
+                    )
                     sys.exit(1)
 
                 else:
                     logging.warning("Ignoring version mismatch per argument")
-
 
             logging.debug("loaded pretor.toml: {}".format(pretor_data))
 
@@ -288,11 +289,11 @@ def psf_cli(argv=None):
             "section": args.section,
             "semester": args.semester,
             "assignment": args.assignment,
-            "group": args.group
+            "group": args.group,
         }
 
         # strip None items
-        arg_metadata = {k:v for k,v in arg_metadata.items() if v is not None}
+        arg_metadata = {k: v for k, v in arg_metadata.items() if v is not None}
 
         # pull over anything specified as an argument
         metadata = {**pretor_data, **arg_metadata}
@@ -328,9 +329,13 @@ def psf_cli(argv=None):
             psf.forensic["disable_version_check"] = True
 
         logging.info("generating metadata... ")
-        psf.metadata = { **psf.metadata, **metadata, **{
-            "timestamp": str(datetime.datetime.now()),
-            "pretor_version": constants.version}
+        psf.metadata = {
+            **psf.metadata,
+            **metadata,
+            **{
+                "timestamp": str(datetime.datetime.now()),
+                "pretor_version": constants.version,
+            },
         }
 
         psf.forensic["hostname"] = str(socket.gethostname())
@@ -459,7 +464,11 @@ def load_pretor_toml(source):
 
     if "minimum_version" in data:
         if not util.compare_versions(constants.version, data["minimum_version"]):
-            raise exceptions.VersionError("installed version {} does not meet minimum {}".format(constants.version, data["minimum_version"]))
+            raise exceptions.VersionError(
+                "installed version {} does not meet minimum {}".format(
+                    constants.version, data["minimum_version"]
+                )
+            )
 
     return metadata, exclude
 
