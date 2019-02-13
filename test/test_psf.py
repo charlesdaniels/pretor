@@ -26,3 +26,12 @@ class TestPSF(unittest.TestCase):
         this.test_dir = None
         this.test_file = None
         this.test_str = None
+
+    def test_load_from_dir(this):
+        thePSF = psf.PSF()
+        thePSF.load_from_dir(this.test_dir, "AAAA")
+
+        this.assertTrue("AAAA" in thePSF.revisions)
+
+        rev = thePSF.revisions["AAAA"]
+        this.assertEqual(rev.get_file("foo").get_data().decode("utf-8"), this.test_str)

@@ -583,7 +583,7 @@ class PSF:
 
         rev = Revision(this, revID)
         this.revisions[revID] = rev
-        for child in path.glob("**/*"):
+        for child in pathlib.Path(path).glob("**/*"):
 
             exclude = False
             for pattern in excludelist:
