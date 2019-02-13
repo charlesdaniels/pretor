@@ -40,3 +40,15 @@ class StateError(Exception):
         message = "State error: {}".format(msg)
 
         super().__init__(message)
+
+
+class VersionError(Exception):
+    """
+    Indicates that this version of Pretor is unsuitable for the operation.
+    """
+
+    def __init__(this, msg="unspecified"):
+        msg = str(msg)
+        message = "Version error: {}".format(msg)
+
+        super().__init__(message)

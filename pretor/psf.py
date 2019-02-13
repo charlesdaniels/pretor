@@ -245,15 +245,31 @@ def psf_cli(argv=None):
     if args.create:
         logging.info("creating PSF... ")
 
-        # load data from pretor.toml
+        # prepare to load pretor.toml
         pretor_path = pathlib.Path(args.source, "pretor.toml")
         if pretor_path.exists():
             pretor_path = pretor_path.resolve()
         pretor_data = {}
         excludelist = []
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
+
+        # load the pretor.toml if possible
         if pretor_path.exists():
-            pretor_data = toml.load(str(pretor_path))
+            try:
+                pretor_data, excludelist = load_pretor_toml(pretor_path)
+
+            except exceptions.VersionError as e:
+                # handle version checking
+                util.log_exception(e)
+                if not args.disable_versioncheck:
+                    logging.error("Installed pretor version is too old to " +
+                            "load {}.".format(pretor_path))
+                    sys.exit(1)
+
+                else:
+                    logging.warning("Ignoring version mismatch per argument")
+
+
             logging.debug("loaded pretor.toml: {}".format(pretor_data))
 
         elif args.allow_no_toml:
@@ -267,53 +283,29 @@ def psf_cli(argv=None):
         else:
             logging.warning("packing PSF without pretor.toml")
 
-        if "exclude" in pretor_data:
-            excludelist = pretor_data["exclude"]
+        arg_metadata = {
+            "course": args.course,
+            "section": args.section,
+            "semester": args.semester,
+            "assignment": args.assignment,
+            "group": args.group
+        }
 
-        if args.course is None:
-            if "course" in pretor_data:
-                args.course = pretor_data["course"]
+        # strip None items
+        arg_metadata = {k:v for k,v in arg_metadata.items() if v is not None}
 
-        if args.section is None:
-            if "section" in pretor_data:
-                args.section = pretor_data["section"]
+        # pull over anything specified as an argument
+        metadata = {**pretor_data, **arg_metadata}
 
-        if args.semester is None:
-            if "semester" in pretor_data:
-                args.semester = pretor_data["semester"]
-
-        if args.assignment is None:
-            if "assignment" in pretor_data:
-                args.assignment = pretor_data["assignment"]
-
+        # check all required metadata is present
         if not args.no_meta_check:
-            if args.semester is None:
-                logging.error("Semester was not specified.")
-                sys.exit(1)
+            for key in ["course", "semester", "assignment", "section"]:
+                missing = False
+                if key not in metadata:
+                    logging.error("{} was not specified".format(key))
+                    missing = True
 
-            if args.assignment is None:
-                logging.error("Assignment was not specified.")
-                sys.exit(1)
-
-            if args.course is None:
-                logging.error("Course was not specified.")
-                sys.exit(1)
-
-            if args.section is None:
-                logging.error("Section was not specified.")
-                sys.exit(1)
-
-        if not args.disable_version_check:
-            if "minimum_version" in pretor_data:
-                if not util.compare_versions(
-                    constants.version, pretor_data["minimum_version"]
-                ):
-                    logging.error(
-                        "pretor.toml specific minimum Pretor version of "
-                        + "'{}', but installed version is '{}'".format(
-                            pretor_data["minimum_version"], constants.version
-                        )
-                    )
+                if missing:
                     sys.exit(1)
 
         logging.info("reading data from {}".format(args.source))
@@ -336,13 +328,10 @@ def psf_cli(argv=None):
             psf.forensic["disable_version_check"] = True
 
         logging.info("generating metadata... ")
-        psf.metadata["semester"] = args.semester
-        psf.metadata["section"] = args.section
-        psf.metadata["assignment"] = args.assignment
-        psf.metadata["group"] = args.group
-        psf.metadata["course"] = args.course
-        psf.metadata["timestamp"] = datetime.datetime.now()
-        psf.metadata["pretor_version"] = constants.version
+        psf.metadata = { **psf.metadata, **metadata, **{
+            "timestamp": str(datetime.datetime.now()),
+            "pretor_version": constants.version}
+        }
 
         psf.forensic["hostname"] = str(socket.gethostname())
         psf.forensic["timestamp"] = str(datetime.datetime.now())
@@ -352,8 +341,17 @@ def psf_cli(argv=None):
 
         # write output file
         if args.name is None:
+            for key in ["course", "semester", "assignment", "section", "group"]:
+                if key not in psf.metadata:
+                    logging.error("insufficient data to generate output name")
+                    sys.exit(1)
+
             args.name = "{}-{}-{}-{}-{}.psf".format(
-                args.semester, args.course, args.section, args.group, args.assignment
+                psf.metadata["semester"],
+                psf.metadata["course"],
+                psf.metadata["section"],
+                psf.metadata["group"],
+                psf.metadata["assignment"],
             )
 
         if args.destination is None:
@@ -426,6 +424,44 @@ def psf_cli(argv=None):
             else:
                 logging.error("no such revision {}".format(args.revid))
                 sys.exit(1)
+
+
+def load_pretor_toml(source):
+    """load_pretor_toml
+
+    Load a ``pretor.toml`` file from the specified path and return it as
+    a tuple of the format (metadata, excludelist)
+
+    If source is of type string, then it will be loaded as the TOML data. If
+    it is of type dict, it will be used as the data directly, and if it is
+    anything else it will be cast to a path and loaded.
+
+    :param source:
+    """
+
+    metadata = {}
+    exclude = []
+
+    data = {}
+    if type(source) is str:
+        data = toml.loads(source)
+    elif type(source) is dict:
+        data = source
+    else:
+        data = toml.load(str(source))
+
+    for key in ["course", "section", "semester", "assignment"]:
+        if key in data:
+            metadata[key] = data[key]
+
+    if "exclude" in data:
+        exclude = list(psfdata["exclude"])
+
+    if "minimum_version" in data:
+        if not util.compare_versions(constants.version, data["minimum_version"]):
+            raise exceptions.VersionError("installed version {} does not meet minimum {}".format(constants.version, data["minimum_version"]))
+
+    return metadata, exclude
 
 
 class PSF:
