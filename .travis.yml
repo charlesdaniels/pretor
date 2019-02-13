@@ -42,3 +42,15 @@ jobs:
           python:
               - "3.7"
           script: "pip install black && ./scripts/run_linter.sh"
+        - stage: build_deb
+          script: "pip install stdeb && python3 setup.py --command-packages=stdeb.command bdist_deb"
+          python:
+              - "3.5"
+        - stage: build_deb
+          script: "pip install stdeb && python3 setup.py --command-packages=stdeb.command bdist_deb"
+          python:
+              - "3.6"
+        - stage: build_deb
+          script: "pip install stdeb && python3 setup.py --command-packages=stdeb.command bdist_deb"
+          python:
+              - "3.7"
