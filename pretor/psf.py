@@ -251,12 +251,15 @@ def psf_cli(argv=None):
             pretor_path = pretor_path.resolve()
         pretor_data = {}
         excludelist = []
+        valid_assignments = []
         logging.debug("looking for pretor.toml at {}".format(pretor_path))
 
         # load the pretor.toml if possible
         if pretor_path.exists():
             try:
-                pretor_data, excludelist = load_pretor_toml(pretor_path)
+                pretor_data, excludelist, valid_assignments = load_pretor_toml(
+                    pretor_path
+                )
 
             except exceptions.VersionError as e:
                 # handle version checking
@@ -308,6 +311,15 @@ def psf_cli(argv=None):
 
                 if missing:
                     sys.exit(1)
+
+            if (len(valid_assignments) > 0) and (
+                metadata["assignment"] not in valid_assignments
+            ):
+                logging.error(
+                    "Invalid assignment name '{}'".format(metadata["assignment"])
+                    + " valid choices are: {}".format(str(valid_assignments))
+                )
+                sys.exit(1)
 
         logging.info("reading data from {}".format(args.source))
         psf = PSF()
@@ -435,7 +447,7 @@ def load_pretor_toml(source):
     """load_pretor_toml
 
     Load a ``pretor.toml`` file from the specified path and return it as
-    a tuple of the format (metadata, excludelist)
+    a tuple of the format (metadata, excludelist, valid)
 
     If source is of type string, then it will be loaded as the TOML data. If
     it is of type dict, it will be used as the data directly, and if it is
@@ -446,6 +458,7 @@ def load_pretor_toml(source):
 
     metadata = {}
     exclude = []
+    valid = []
 
     data = {}
     if type(source) is str:
@@ -460,7 +473,10 @@ def load_pretor_toml(source):
             metadata[key] = data[key]
 
     if "exclude" in data:
-        exclude = list(psfdata["exclude"])
+        exclude = list(data["exclude"])
+
+    if "valid_assignment_names" in data:
+        valid = list(data["valid_assignment_names"])
 
     if "minimum_version" in data:
         if not util.compare_versions(constants.version, data["minimum_version"]):
@@ -470,7 +486,7 @@ def load_pretor_toml(source):
                 )
             )
 
-    return metadata, exclude
+    return metadata, exclude, valid
 
 
 class PSF:

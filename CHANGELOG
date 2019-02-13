@@ -19,3 +19,7 @@
 
 * --no_meta_check, --allow_no_tom, and --disable_version_check now write keys
   into both metadata and forensic data.
+
+* Implemented support for a 'valid_assignment_names' field in pretor.toml,
+  which causes pretor-psf --create to validate that the specified assignment
+  name is one of those specified in this list.

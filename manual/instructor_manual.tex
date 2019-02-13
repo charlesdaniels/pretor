@@ -625,6 +625,13 @@ A \texttt{pretor.toml} file may define any of the following fields:
 	\item \texttt{minimum\_version} -- the minimum Pretor version which
 		can be used to pack this assignment as a string, i.e. "0.0.2"
 
+	\item \texttt{valid\_assignment\_names} -- a list of string assignment
+		names. If this is supplied, and the assignment name is not on
+		this list, then \texttt{pretor-psf} will throw an error. This
+		is to support instructors writing a single \texttt{pretor.toml}
+		and using it for every assignment in a course if desired.  May
+		be bypassed, see $\S$\ref{sec:bypass}. Added in \texttt{0.0.3}.
+
 \end{itemize}
 
 \subsection{A Sample \texttt{pretor.toml}}
@@ -637,7 +644,7 @@ course = "ABC123"
 exclude = ["*.o"]
 \end{verbatim}
 
-\subsection{Bypassing Metadata Checks}
+\subsection{Bypassing Metadata Checks} \label{sec:bypass}
 
 \pretoremph{ \textbf{Danger Zone}: The information in this section will allow
 you to generate PSFs with missing or incorrect metadata which may impede
