@@ -6,6 +6,11 @@ python:
   - "3.7"
   - "pypy3.5"
 
+addons:
+    apt:
+        packages:
+            - fakeroot
+
 install:
   - python3 setup.py install
 
