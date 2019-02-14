@@ -23,3 +23,10 @@
 * Implemented support for a 'valid_assignment_names' field in pretor.toml,
   which causes pretor-psf --create to validate that the specified assignment
   name is one of those specified in this list.
+
+* Implemented --interact action in pretor-psf, allowing in-place grading without
+  using pretor-grade.
+
+* Implemented --coursepath flag in pretor-psf, for use with --interact.
+
+* Implemented --lsrev action in pretor-psf.

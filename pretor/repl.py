@@ -252,11 +252,6 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             this.fail("Not working on any PSF currently.")
             return
 
-        # TODO: make this configurable, maybe, but how to set --norc
-        # portably?
-        shell = ["bash", "--norc"]
-        logging.debug("interact: shell set to '{}'".format(shell))
-
         # We annotate each PSF object with the workdir we're using, that way if
         # the user wants to interact with the same PSF more than once before
         # finalizing, they can.
@@ -268,7 +263,6 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             workdir = tempfile.mkdtemp()
             current.repl_workdir = workdir
         workdir = pathlib.Path(workdir)
-        logging.debug("interact: workdir is '{}'".format(workdir))
 
         # handle various case of revision symbol and graded status
         grade_revision = None
@@ -300,110 +294,27 @@ Begin an interactive shell session in the current PSF so that it may be graded.
             )
             this.symtab["revision"] = grade_revision.ID
 
-        # Unpack the PSF into the workdir
-        grade_revision.write_files(workdir / "submission")
-
-        # make sure the metadata we'll need is present
-        metadata = current.metadata
-        metadata_ok = (
-            ("assignment" in metadata)
-            and ("group" in metadata)
-            and ("course" in metadata)
-        )
-
-        if not metadata_ok:
-            logging.warning("'{}' missing metadata".format(current))
-
-        # we only need to create a new grade revision if there isn't one
-        if grade_revision.grade is None:
-
-            # load all courses in the coursepath
-            courses = {}
-            for p in this.symtab["coursepath"].split(":"):
-                p = pathlib.Path(p)
-                if p.is_file():
+        # load all courses in the coursepath
+        courses = {}
+        for p in this.symtab["coursepath"].split(":"):
+            p = pathlib.Path(p)
+            if p.is_file():
+                try:
+                    c = course.load_course_definition(p)
+                    courses[c.name] = c
+                except Exception as e:
+                    util.log_exception(e)
+                    logging.warning("failed to load course from '{}'".format(p))
+            else:
+                for fp in p.glob("**/*.toml"):
                     try:
-                        c = course.load_course_definition(p)
+                        c = course.load_course_definition(fp)
                         courses[c.name] = c
                     except Exception as e:
                         util.log_exception(e)
-                        logging.warning("failed to load course from '{}'".format(p))
-                else:
-                    for fp in p.glob("**/*.toml"):
-                        try:
-                            c = course.load_course_definition(fp)
-                            courses[c.name] = c
-                        except Exception as e:
-                            util.log_exception(e)
-                            logging.warning(
-                                "failed to load course from '{}'".format(fp)
-                            )
+                        logging.warning("failed to load course from '{}'".format(fp))
 
-            # Create a Grade object and associate it with this revision
-            grade_obj = None
-            if metadata_ok:
-                if metadata["course"] not in courses:
-                    logging.error(
-                        "no course found in '{}': '{}'".format(
-                            this.symtab["coursepath"], metadata["course"]
-                        )
-                    )
-
-                elif (
-                    metadata["assignment"]
-                    not in courses[metadata["course"]].assignments
-                ):
-                    logging.error(
-                        "no assignment '{}' in course '{}'".format(
-                            metadata["assignment"], metadata["course"]
-                        )
-                    )
-
-                elif grade_revision.grade is not None:
-                    # this case should never occur
-                    grade_obj = grade_revision.grade
-
-                else:
-                    grade_obj = grade.Grade(
-                        courses[metadata["course"]].assignments[metadata["assignment"]]
-                    )
-                    grade_revision.grade = grade_obj
-
-        grade_obj = grade_revision.grade
-
-        if grade_obj is None:
-            logging.warning(
-                "unable to instantiate new grade, PSF may have missing or invalid metadata"
-            )
-
-        else:
-            # write out grade file
-            with open(workdir / "grade.toml", "w") as f:
-                f.write(grade_obj.dump_string())
-
-        env = dict(os.environ)
-        env["PRETOR_WORKDIR"] = workdir
-        env["PRETOR_VERSION"] = constants.version
-
-        if metadata_ok:
-            env["PS1"] = "grading {} by {} $ ".format(
-                current.metadata["assignment"], current.metadata["group"]
-            )
-        else:
-            env["PS1"] = "grading [MISSING METADATA] $ "
-
-        logging.info("dropping you to a shell: {}".format(" ".join(shell)))
-        try:
-            p = subprocess.Popen(shell, env=env, cwd=workdir)
-            status = p.wait()
-        except Exception as e:
-            util.log_exception(e)
-
-        logging.info("shell session terminated")
-
-        # load up any changes made by the grader
-        if grade_obj is not None:
-            grade_obj.load_file(workdir / "grade.toml")
+        current.interact(this.symtab["revision"], workdir, courses)
 
     def do_lsrev(this, arg):
         """lsrev

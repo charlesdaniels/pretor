@@ -7,9 +7,11 @@ import datetime
 import getpass
 import io
 import logging
+import os
 import pathlib
 import re
 import socket
+import subprocess
 import sys
 import tabulate
 import tempfile
@@ -167,6 +169,15 @@ def psf_cli(argv=None):
         + "file to be overwritten even if it already exists.",
     )
 
+    parser.add_argument(
+        "--coursepath",
+        "-P",
+        default=None,
+        type=str,
+        help="Specify colon-delimited course definition search path. "
+        + "This flag is ignored except when combined with --interact.",
+    )
+
     action = parser.add_mutually_exclusive_group(required=True)
 
     action.add_argument(
@@ -225,10 +236,30 @@ def psf_cli(argv=None):
     action.add_argument(
         "--scorecard",
         "-R",
-        default=False,
+        default=None,
         action="store_true",
         help="Generate a scorecard for the canonical grade"
         + "revision, or for the one specified as an argument to --revid.",
+    )
+
+    action.add_argument(
+        "--interact",
+        "-I",
+        default=None,
+        help="Interact with the input archive in a shell. You must specify "
+        + "a revision as a parameter. The parameter is the string revision ID. "
+        + "If it does not exist, it will be created. If the parameter is of the"
+        + " form 'A:B', then revision B will be created with revision A as "
+        + "the parent. If the parameter is @grade, an auto-generated name "
+        + "will be used and appended to the end of the revision chain.",
+    )
+
+    action.add_argument(
+        "--lsrev",
+        "-L",
+        default=False,
+        action="store_true",
+        help="List all revisions in the PSF",
     )
 
     args = None
@@ -442,6 +473,62 @@ def psf_cli(argv=None):
                 logging.error("no such revision {}".format(args.revid))
                 sys.exit(1)
 
+    elif args.interact is not None:
+        rev = None
+
+        if args.interact == "@grade":
+            if psf.is_graded():
+                rev = psf.create_grade_revision()
+            else:
+                logging.error(
+                    "No grade revision. Try using "
+                    + "'parent_revision:@grade' instead."
+                )
+                sys.exit(1)
+
+        elif ":" in args.interact:
+            args.interact = args.interact.split(":")
+            if args.interact[1] == "@grade":
+                rev = psf.create_revision("graded_0", args.interact[0])
+            else:
+                rev = psf.create_revision(args.interact[1], args.interact[0])
+
+        elif args.interact in this.revisions:
+            rev = psf.get_revision(args.interact)
+
+        else:
+            rev = psf.create_revision(args.interact)
+
+        courses = {}
+        if args.coursepath is not None:
+            for p in args.coursepath.split(":"):
+                p = pathlib.Path(p)
+                if p.is_file():
+                    try:
+                        c = course.load_course_definition(p)
+                        courses[c.name] = c
+                    except Exception as e:
+                        util.log_exception(e)
+                        logging.warning("failed to load course from '{}'".format(p))
+                else:
+                    for fp in p.glob("**/*.toml"):
+                        try:
+                            c = course.load_course_definition(fp)
+                            courses[c.name] = c
+                        except Exception as e:
+                            util.log_exception(e)
+                            logging.warning(
+                                "failed to load course from '{}'".format(fp)
+                            )
+
+        psf.interact(rev.ID, courses=courses)
+        logging.info("updating '{}' in place".format(args.input))
+        psf.save_to_archive(args.input)
+
+    elif args.lsrev:
+        for k in psf.revisions:
+            print(k)
+
 
 def load_pretor_toml(source):
     """load_pretor_toml
@@ -567,7 +654,9 @@ class PSF:
     def load_from_dir(this, path: pathlib.Path, revID, excludelist=[]):
         """load_from_dir
 
-        Populate this PSF object from a directory.
+        Populate this PSF object from a directory. If the revision already
+        exists, then the contents of the directory will be added to it,
+        possibly overwriting any existing contents.
 
         :param this:
         :param path:
@@ -581,8 +670,15 @@ class PSF:
         this.ID = str(uuid.uuid4())
         logging.debug("ID={}".format(this.ID))
 
-        rev = Revision(this, revID)
-        this.revisions[revID] = rev
+        rev = None
+        if revID in this.revisions:
+            rev = this.get_revision(revID)
+
+        else:
+            # this revision does not exist yet, create it
+            rev = Revision(this, revID)
+            this.revisions[revID] = rev
+
         for child in pathlib.Path(path).glob("**/*"):
 
             exclude = False
@@ -1056,6 +1152,107 @@ class PSF:
         """
 
         return this.get_grade_rev() is not None
+
+    def interact(this, revID, workdir=None, courses={}):
+
+        # TODO: make this configurable, maybe, but how to set --norc
+        # portably?
+        shell = ["bash", "--norc"]
+        logging.debug("interact: shell set to '{}'".format(shell))
+
+        if workdir is None:
+            workdir = tempfile.mkdtemp()
+
+        workdir = pathlib.Path(workdir)
+        logging.debug("interact: workdir is '{}'".format(workdir))
+
+        interact_revision = this.get_revision(revID)
+
+        # Unpack the PSF into the workdir
+        interact_revision.write_files(workdir / "contents")
+
+        # make sure the metadata we'll need is present
+        metadata = this.metadata
+        metadata_ok = (
+            ("assignment" in metadata)
+            and ("group" in metadata)
+            and ("course" in metadata)
+        )
+
+        if not metadata_ok:
+            logging.warning("'{}' missing metadata".format(current))
+
+        # we only need to create a new grade revision if there isn't one
+        if interact_revision.grade is None:
+
+            # Create a Grade object and associate it with this revision
+            grade_obj = None
+            if metadata_ok:
+                if metadata["course"] not in courses:
+                    logging.error("no course found '{}'".format(metadata["course"]))
+
+                elif (
+                    metadata["assignment"]
+                    not in courses[metadata["course"]].assignments
+                ):
+                    logging.error(
+                        "no assignment '{}' in course '{}'".format(
+                            metadata["assignment"], metadata["course"]
+                        )
+                    )
+
+                elif interact_revision.grade is not None:
+                    # this case should never occur
+                    grade_obj = interact_revision.grade
+                    logging.warning(
+                        "If you see this message, you have "
+                        + "found a bug in Pretor. Tell one of the "
+                        + "Pretor developers 'psf:1130'"
+                    )
+
+                else:
+                    grade_obj = grade.Grade(
+                        courses[metadata["course"]].assignments[metadata["assignment"]]
+                    )
+                    interact_revision.grade = grade_obj
+
+        grade_obj = interact_revision.grade
+
+        if grade_obj is None:
+            logging.warning(
+                "unable to instantiate new grade, PSF may have missing or invalid metadata"
+            )
+
+        else:
+            # write out grade file
+            with open(workdir / "grade.toml", "w") as f:
+                f.write(grade_obj.dump_string())
+
+        env = dict(os.environ)
+        env["PRETOR_WORKDIR"] = workdir
+        env["PRETOR_VERSION"] = constants.version
+
+        if metadata_ok:
+            env["PS1"] = "interact: {} by {} $ ".format(
+                this.metadata["assignment"], this.metadata["group"]
+            )
+        else:
+            env["PS1"] = "interact: [MISSING METADATA] $ "
+
+        logging.info("dropping you to a shell: {}".format(" ".join(shell)))
+        try:
+            p = subprocess.Popen(shell, env=env, cwd=workdir)
+            status = p.wait()
+        except Exception as e:
+            util.log_exception(e)
+
+        logging.info("shell session terminated")
+
+        # load up any changes made by the user
+        if grade_obj is not None:
+            grade_obj.load_file(workdir / "grade.toml")
+
+        this.load_from_dir(workdir / "contents", revID)
 
 
 class Revision:
