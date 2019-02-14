@@ -948,6 +948,46 @@ RAW SCORE: 100.00%
 OVERALL SCORE: 100.00%
 \end{verbatim}
 
+\section{Grading with \texttt{pretor-psf}}
+
+It is often the case that it is desirable to interact with or grade a PSF in a
+"one off" fashion. \texttt{pretor-psf}, beginning with Pretor version
+\texttt{0.0.3}, supports interacting with PSFs in the same fashion as the
+\texttt{interact} command of the grading REPL. This is accomplished via the
+\texttt{-{}-interact} flat to \texttt{pretor-psf}. This flag takes one
+parameter, which is used to specify the revision you would like to interact
+with. The syntax it uses is somewhat unusual to support a wide range of
+different cases:
+
+\begin{itemize}
+
+	\item \texttt{pretor-psf $\hdots$ -{}-interact A} starts an interactive
+		session of revision A, creating that revision if it does not
+		already exist.
+
+	\item \texttt{pretor-psf $\hdots$ -{}-interact A:B} starts an
+		interactive session on revision B, creating revision B as a
+		child of revision A. Revision B must not already exist.
+
+	\item \texttt{pretor-pfs $\hdots$ -{}-interact @grade} starts an
+		interactive session on a new grade revision, as the grading
+		REPL would when interacting with a PSF that already has a grade
+		revision. The PSF must already be graded.
+
+	\item \texttt{pretor-psf $\hdots$ -{}-interact A:@grade} starts an
+		interactive session on a new grade revision which uses revision
+		A as it's parent.
+
+\end{itemize}
+
+When you exit the interactive session, the revision you were working with is
+unconditionally saved to the input archive (the PSF you specified via the
+\texttt{-{}-input} parameter.
+
+Note that if you wish to grade the PSF as you interact with it, you will also
+need to use the \texttt{-{}-coursepath} flag to specify a location or locations
+(colon-delimited) where course definition files should be loaded from.
+
 \chapter{The Pretor Submission File (PSF) Format}
 
 \section{Pretor Submission File Format Revisions}
