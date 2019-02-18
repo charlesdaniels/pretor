@@ -32,3 +32,5 @@
 * Implemented --lsrev action in pretor-psf.
 
 0.0.4:
+
+* Implemented pretor-query command

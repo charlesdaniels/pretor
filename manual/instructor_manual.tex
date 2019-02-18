@@ -913,41 +913,6 @@ regular basis. For example, the course definition search path, or finalized PSF
 output directory might be defined here to avoid needing to specify these for
 each grading session.
 
-\section{Exporting Grades}
-
-Grades may be exported for upload to a LMS\footnote{Learning Management System,
-such as Moodle, Blackboard, et. al.}. This is accomplished via the
-\texttt{pretor-export} command. This command iterates over a collection of PSF
-files and generates output in one of several formats. For full documentation,
-see \texttt{pretor-export -{}-help}.
-
-The Moodle formatted output\footnote{Obtained via the \texttt{-{}-moodle}
-flags}, which is simply a text CSV format, is likely the most amenable to the
-application of your own automation, and should be well suited for parsing with
-tools such as Excel, LibreOffice, or
-xsv\footnote{\url{https://github.com/BurntSushi/xsv}}.
-
-\subsection{Sample Usage of \texttt{pretor-export}}
-
-\begin{verbatim}
-$ pretor-export --input *.psf --moodle
-"Spring 1973","ABC123",2,"cad",100.0,""
-$ pretor-export --input *.psf --table
-Spring 1973  ABC123  2  cad  100
-$ pretor-psf --scorecard --input Spring\ 1973-ABC123-2-cad-Assignment\ 1.psf
-SCORECARD FOR ABC123: Assignment 1
-
-CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
-correctness  70     70         100.00%
-style        30     30         100.00%
-
-OVERALL MARKS: 100
-MAXIMUM OVERALL MARKS: 100
-RAW SCORE: 100.00%
-
-OVERALL SCORE: 100.00%
-\end{verbatim}
-
 \section{Grading with \texttt{pretor-psf}}
 
 It is often the case that it is desirable to interact with or grade a PSF in a
@@ -988,7 +953,138 @@ Note that if you wish to grade the PSF as you interact with it, you will also
 need to use the \texttt{-{}-coursepath} flag to specify a location or locations
 (colon-delimited) where course definition files should be loaded from.
 
-\chapter{The Pretor Submission File (PSF) Format}
+\chapter{Managing PSFs} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+A critical aspect of using Pretor is managing a library of PSFs that have been
+turned in in the past in various ways. While grading is the most obvious
+fashion in which an instructor will interact with PSFs, there are other useful
+operations which Pretor supports. This chapter documents all forms of PSF
+interaction that do not involve the direct entering of grades.
+
+\section{Exporting Grades}
+
+Grades may be exported for upload to a LMS\footnote{Learning Management System,
+such as Moodle, Blackboard, et. al.}. This is accomplished via the
+\texttt{pretor-export} command. This command iterates over a collection of PSF
+files and generates output in one of several formats. For full documentation,
+see \texttt{pretor-export -{}-help}.
+
+The Moodle formatted output\footnote{Obtained via the \texttt{-{}-moodle}
+flags}, which is simply a text CSV format, is likely the most amenable to the
+application of your own automation, and should be well suited for parsing with
+tools such as Excel, LibreOffice, or
+xsv\footnote{\url{https://github.com/BurntSushi/xsv}}.
+
+\subsection{Sample Usage of \texttt{pretor-export}}
+
+\begin{verbatim}
+$ pretor-export --input *.psf --moodle
+"Spring 1973","ABC123",2,"cad",100.0,""
+$ pretor-export --input *.psf --table
+Spring 1973  ABC123  2  cad  100
+$ pretor-psf --scorecard --input Spring\ 1973-ABC123-2-cad-Assignment\ 1.psf
+SCORECARD FOR ABC123: Assignment 1
+
+CATEGORY     MARKS  MAX MARKS  PERCENT SCORE
+correctness  70     70         100.00%
+style        30     30         100.00%
+
+OVERALL MARKS: 100
+MAXIMUM OVERALL MARKS: 100
+RAW SCORE: 100.00%
+
+OVERALL SCORE: 100.00%
+\end{verbatim}
+
+\section{Querying PSFs with \texttt{pretor-query}}
+
+It is often the case that an instructor might wish to perform queries across
+many PSFs. Examples might include tracking the performance of a specific
+student across assignments or semesters, locating every submission from a
+specific group, or locating ungraded PSFs.
+
+Because anticipating every possible useful query operation that a user might
+wish to perform is impossible, Pretor supports query across a wide variety of
+different fields using arbitrary SQL queries. This is accomplished by loading
+the entire library of PSFs the user is interested in, extracting relevant
+fields from each, and generating an in-memory sqlite 3 database which the user
+can then query.
+
+The \texttt{pretor-query} command by default operates on all PSFs located
+recursively below it's current working directory, but this may be overridden
+via the \texttt{-{}-glob} parameter, which allows an arbitrary glob pattern
+to be specified. It also supports a few different output formats:
+
+\begin{itemize}
+
+	\item By default, output is shown as a space-delimited ASCII table,
+		which should be suitable for parsing via shell script.
+
+	\item Via \texttt{-{}-pretty}, output is shown as a "pretty" table
+		using box-drawing characters. This is not suitable for
+		machine parsing.
+
+	\item Via \texttt{-{}-tsv} and \texttt{-{}-csv}, output is shown as
+		Excel-compatible TSV or CSV (respectively), with a header row.
+
+\end{itemize}
+
+The SQL query is provided via the \texttt{-{}-query} parameter, which must
+be provided.
+
+\pretoremph{ \textbf{Note}: There is considerable overlap between
+\texttt{pretor-query} and \texttt{pretor-export}. This is by design; the latter
+serves a narrower, more common use case where the improved ease-of-use will
+prove valuable. The former is ostensibly more flexible, but requires a
+knowledge of SQL, and is a lower level abstraction, more closely reflecting the
+internal representation of PSFs within Pretor.}
+
+\subsection{Useful Patterns: Combining \texttt{pretor-psf} \&
+\texttt{pretor-query}}
+
+An explicitly intended and recommended pattern is to use \texttt{pretor-psf},
+\texttt{pretor-query}, and \texttt{xargs} in conjunction with one another to
+perform very complex manipulations on PSFs en-mass. For this reason, the
+\texttt{path} column is made available in the SQL table, which stores the
+path to the PSF corresponding to the row in question. An example of this
+pattern might be:
+
+\texttt{pretor-query -{}-query 'SELECT path FROM psf WHERE grade > 0.8' | xargs
+-d '{\textbackslash}n' -n 1 pretor-psf -{}-scorecard -{}-input}
+
+This pipeline selects every PSF which has been graded at an 80\% or higher and
+displays a scorecard for it. Note the parameters to \texttt{xargs} when
+constructing your own pipelines.
+
+\subsection{The \texttt{pretor-query} Schema}
+
+\begin{verbatim}
+CREATE TABLE psf(
+    uuid TEXT,
+    filename TEXT,
+    path TEXT,
+    course TEXT,
+    semester TEXT,
+    section TEXT,
+    groupid TEXT,
+    assignment TEXT,
+    graded BOOL,
+    grade FLOAT,
+    no_meta_check BOOL,
+    allow_no_toml BOOL,
+    disable_version_check BOOL,
+    forensic_no_meta_check BOOL,
+    forensic_allow_no_toml BOOL,
+    forensic_disable_version_check BOOL,
+    forensic_hostname TEXT,
+    forensic_timestamp TEXT,
+    forensic_user TEXT,
+    forensic_source_dir TEXT,
+    forensic_pretor_version TEXT
+);
+\end{verbatim}
+
+\chapter{The Pretor Submission File (PSF) Format} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Pretor Submission File Format Revisions}
 
