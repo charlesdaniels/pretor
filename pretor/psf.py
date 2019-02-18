@@ -4,6 +4,7 @@
 import argparse
 import copy
 import datetime
+import difflib
 import getpass
 import io
 import logging
@@ -262,6 +263,14 @@ def psf_cli(argv=None):
         help="List all revisions in the PSF",
     )
 
+    action.add_argument(
+        "--diff",
+        default=None,
+        nargs=2,
+        help="Generate a unified diff format diff of each file in "
+        + "the two specified revisions.",
+    )
+
     args = None
     if argv is not None:
         args = parser.parse_args(argv)
@@ -493,7 +502,7 @@ def psf_cli(argv=None):
             else:
                 rev = psf.create_revision(args.interact[1], args.interact[0])
 
-        elif args.interact in this.revisions:
+        elif args.interact in psf.revisions:
             rev = psf.get_revision(args.interact)
 
         else:
@@ -528,6 +537,12 @@ def psf_cli(argv=None):
     elif args.lsrev:
         for k in psf.revisions:
             print(k)
+
+    elif args.diff is not None:
+        try:
+            print(psf.diff(args.diff[0], args.diff[1]))
+        except Exception as e:
+            util.log_exception(e)
 
 
 def load_pretor_toml(source):
@@ -1253,6 +1268,49 @@ class PSF:
             grade_obj.load_file(workdir / "grade.toml")
 
         this.load_from_dir(workdir / "contents", revID)
+
+    def diff(this, revIDA, revIDB):
+        """diff
+
+        Generate a unified diff format string of all files in each of revA,
+        revB.
+
+        :param revIDA: revision ID A
+        :param revIDB: revision ID B
+        """
+
+        revA = this.get_revision(revIDA)
+        revB = this.get_revision(revIDB)
+
+        logging.debug("diffing '{}' revisions {} and {}".format(this, revA, revB))
+
+        s = ""
+
+        for path in set(list(revA.contents.keys()) + list(revB.contents.keys())):
+            logging.debug("    diffing '{}'".format(path))
+
+            strA = ""
+            if path in revA.contents:
+                strA = revA.contents[path].get_data().decode("utf8")
+            contentsA = list([str(x) + "\n" for x in strA.split("\n")])
+
+            strB = ""
+            if path in revB.contents:
+                strB = revB.contents[path].get_data().decode("utf8")
+            contentsB = list([str(x) + "\n" for x in strB.split("\n")])
+
+            s += str(
+                "".join(
+                    difflib.unified_diff(
+                        contentsA,
+                        contentsB,
+                        fromfile=revIDA + "/" + path,
+                        tofile=revIDB + "/" + path,
+                    )
+                )
+            )
+
+        return s
 
 
 class Revision:

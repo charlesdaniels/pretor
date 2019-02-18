@@ -34,3 +34,8 @@
 0.0.4:
 
 * Implemented pretor-query command
+
+* Fixed a bug where pretor-psf --interact could crash when interacting with
+  an existing revision.
+
+* Implemented pretor-psf --diff
