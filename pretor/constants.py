@@ -3,7 +3,7 @@
 
 import zipfile
 
-version = "0.0.3-dev"
+version = "0.0.4-dev"
 
 psf_format_revision = 0
 

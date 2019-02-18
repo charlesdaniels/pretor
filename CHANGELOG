@@ -30,3 +30,5 @@
 * Implemented --coursepath flag in pretor-psf, for use with --interact.
 
 * Implemented --lsrev action in pretor-psf.
+
+0.0.4:
