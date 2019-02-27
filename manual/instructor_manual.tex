@@ -231,7 +231,7 @@ INFO: dropping you to a shell: bash --norc
 grading Assignment 1 by jsmith $ tree
 .
 ├── grade.toml
-└── submission
+└── contents
     ├── doc
     │   └── HOWTO.txt
     ├── hello.c
@@ -299,6 +299,26 @@ RAW SCORE: 100.00%
 OVERALL SCORE: 100.00%
 
 \end{verbatim}
+
+\pretoremph{
+	\textbf{Note} When exiting an interactive Bash grading session, not
+	only changes to \texttt{grade.toml}, but also to anything within the
+	\texttt{contents/} directory is saved as a new revision.
+	\texttt{pretor-psf -{}-diff} can be used to view changes between
+	different revisions. This can be a valuable feedback mechanism --
+	it can be useful to annotate student code with comments and provide
+	them with the diff as feedback, or to track changes that needed to
+	be made to get the code to compile or pass a test suite.
+}
+
+\pretoremph{
+	\textbf{Note} When the \texttt{contents/} directory is saved after an
+	interactive session, any exclude patterns defined in
+	\texttt{pretor.toml} will be honored, to avoid adding build artifacts
+	to the generated revision. You can modify the \texttt{pretor.toml}
+	within the interactive session if you wish to exchange the list of
+	excluded patterns. See $\S$\ref{sec:pretortoml} for more information.
+}
 
 Notice that the assigned grade is saved out to disk as soon as
 \texttt{finalize} is issued, and can be retrieved later using
@@ -584,7 +604,7 @@ SCORE HAS BEEN OVERRIDDEN BY GRADER
 OVERALL SCORE: 90.00%
 \end{verbatim}
 
-\section{Constructing \texttt{pretor.toml} Files}
+\section{Constructing \texttt{pretor.toml} Files} \label{sec:pretortoml}
 
 When a student generates a PSF from a project directory, \texttt{pretor-psf}
 uses the \texttt{pretor.toml} file in the top-level directory of the project to
