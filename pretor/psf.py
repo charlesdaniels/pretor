@@ -271,6 +271,13 @@ def psf_cli(argv=None):
         + "the two specified revisions.",
     )
 
+    # Deliberately undocumented option - modify a metadata key for a PSF
+    # in-place. First arg is key, second is value
+    action.add_argument(
+        "--modifymetadata", default=None, nargs=2, help=argparse.SUPPRESS
+    )
+
+
     args = None
     if argv is not None:
         args = parser.parse_args(argv)
@@ -543,6 +550,19 @@ def psf_cli(argv=None):
             print(psf.diff(args.diff[0], args.diff[1]))
         except Exception as e:
             util.log_exception(e)
+
+    elif args.modifymetadata is not None:
+        key, new = args.modifymetadata
+        logging.info("Set metadata key '{}' to '{}' for {}".format(
+            key, new, psf))
+        old = psf.metadata[key]
+        psf.metadata[key] = new
+
+        if "modifymetadata" not in psf.forensic:
+            psf.forensic["modifymetadata"] = []
+        psf.forensic["modifymetadata"].append([key, old, new])
+
+        psf.save_to_archive(args.input)
 
 
 def load_pretor_toml(source):

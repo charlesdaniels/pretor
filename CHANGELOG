@@ -41,3 +41,5 @@
 * Implemented pretor-psf --diff
 
 * pretor.toml exclude list is honored while backing up from an interact session
+
+* Implemented pretor-psf --modifymetadata

@@ -1104,6 +1104,24 @@ CREATE TABLE psf(
 );
 \end{verbatim}
 
+\section{Modifying PSF Metadata}
+
+It is occasionally necessary to modify the metadata of an existing PSF, for
+example if a student uses the wrong \texttt{pretor.psf} to generate their
+assignment. While it may be tempting to simply edit the PFS as a zip file and
+change the \texttt{pretor\_data.toml}, this approach is discouraged as it may
+render the PSF unreadable if done incorrectly. The correct approach is to make
+use of the \texttt{pretor-psf -{}-modifymetadata} action\footnote{Added in
+pretor 0.0.4}. This accepts two parameters, the key to be modified, and it's
+new value. As an example, consider \texttt{pretor-psf -{}-{}modifymetadata
+assignment "Assignment 5" --input somefile.psf}, which would modify the
+\texttt{assignment} metadata value to contain \texttt{Assignment 5}.o
+
+\pretoremph{\textbf{Note}: Pretor tracks any metadata edits made by storing
+them in the \texttt{modifymetadata} field of the forensic data. It is always
+possible to determine the original metadata of a PSF by viewing this field.}
+
+
 \chapter{The Pretor Submission File (PSF) Format} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Pretor Submission File Format Revisions}
