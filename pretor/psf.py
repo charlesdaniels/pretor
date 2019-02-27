@@ -1267,7 +1267,13 @@ class PSF:
         if grade_obj is not None:
             grade_obj.load_file(workdir / "grade.toml")
 
-        this.load_from_dir(workdir / "contents", revID)
+        pretor_toml = workdir / "contents" / "pretor.toml"
+        excludelist = []
+        if pretor_toml.exists():
+            metadata, excludelist, valid = load_pretor_toml(pretor_toml)
+
+
+        this.load_from_dir(workdir / "contents", revID, excludelist)
 
     def diff(this, revIDA, revIDB):
         """diff
