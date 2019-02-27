@@ -277,7 +277,6 @@ def psf_cli(argv=None):
         "--modifymetadata", default=None, nargs=2, help=argparse.SUPPRESS
     )
 
-
     args = None
     if argv is not None:
         args = parser.parse_args(argv)
@@ -553,8 +552,7 @@ def psf_cli(argv=None):
 
     elif args.modifymetadata is not None:
         key, new = args.modifymetadata
-        logging.info("Set metadata key '{}' to '{}' for {}".format(
-            key, new, psf))
+        logging.info("Set metadata key '{}' to '{}' for {}".format(key, new, psf))
         old = psf.metadata[key]
         psf.metadata[key] = new
 
