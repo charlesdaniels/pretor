@@ -1272,7 +1272,6 @@ class PSF:
         if pretor_toml.exists():
             metadata, excludelist, valid = load_pretor_toml(pretor_toml)
 
-
         this.load_from_dir(workdir / "contents", revID, excludelist)
 
     def diff(this, revIDA, revIDB):
