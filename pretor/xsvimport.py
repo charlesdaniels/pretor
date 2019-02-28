@@ -19,16 +19,6 @@ def xsvimport_cli(argv=None):
         """Import existing grade records to an existing library of PSFs."""
     )
 
-    parser.add_argument("--version", action="version", version=constants.version)
-
-    parser.add_argument(
-        "--debug",
-        "-d",
-        action="store_true",
-        default=False,
-        help="Log debugging output to the console.",
-    )
-
     parser.add_argument(
         "--coursepath",
         "-P",
@@ -88,16 +78,7 @@ def xsvimport_cli(argv=None):
         help="Override the base revision (default: submission)",
     )
 
-    args = None
-    if argv is not None:
-        args = parser.parse_args(argv)
-    else:
-        args = parser.parse_args()
-
-    if args.debug:
-        util.setup_logging(logging.DEBUG)
-    else:
-        util.setup_logging()
+    args = util.handle_args(parser, argv)
 
     fp = None
     if args.input is not None:
@@ -108,37 +89,13 @@ def xsvimport_cli(argv=None):
         logging.error("No input source, specify --input")
         sys.exit(1)
 
-    xsv_data = []
     xsv_reader = None
-    schema = None
-    if args.schema is not None:
-        schema = args.schema.split(",")
-
     if args.tsv:
         xsv_reader = csv.reader(fp, delimiter="\t")
     else:
         xsv_reader = csv.reader(fp)
 
-    for row in xsv_reader:
-        if schema is None:
-            schema = row
-            continue
-
-        if len(row) != len(schema):
-            logging.error(
-                "Malformed file, row '{}' does not match schema '{}'".format(
-                    row, schema
-                )
-            )
-            sys.exit(1)
-
-        rec = {}
-        for tup in zip(row, schema):
-            rec[tup[1]] = tup[0]
-
-        xsv_data.append(rec)
-
-    fp.close()
+    xsv_data, schema = read_xsv(fp, xsv_reader, args.schema)
 
     logging.info("loaded {} records from input".format(len(xsv_data)))
 
@@ -162,24 +119,7 @@ def xsvimport_cli(argv=None):
         logging.debug("attempting to apply record {}".format(rec))
 
         # select every PSF which matches this query
-        candidates = []
-        for psf_obj in psf_collection:
-
-            # we will match this PSF unless invalidate is tripped
-            invalidate = False
-            for key in schema_keys:
-
-                # check that it has the key
-                if key not in psf_obj.metadata:
-                    logging.warning("PSF {} missing key {}, ignoring".format(key))
-                    invalidate = True
-
-                #  check if they key matches
-                elif psf_obj.metadata[key] != rec[key]:
-                    invalidate = True
-
-            if not invalidate:
-                candidates.append(psf_obj)
+        candidates = [p for p in psf_collection if match(p, rec, schema_keys)]
 
         if len(candidates) < 1:
             logging.warning("Record '{}' matches no PSF, skipping".format(rec))
@@ -195,50 +135,11 @@ def xsvimport_cli(argv=None):
         for psf_obj in candidates:
             logging.debug("applying record '{}' to PSF '{}'".format(rec, psf_obj))
 
-            course_obj = None
-            rev = None
+            grade_obj, rev = create_grade(psf_obj, courses, args.baserev)
 
-            # setup the revision
-            if psf_obj.is_graded():
-                rev = psf_obj.create_grade_revision()
-            else:
-                rev = psf_obj.create_revision("graded_0", args.baserev)
-
-            # setup the course so we can instantiate the grade
-            if "course" not in psf_obj.metadata:
-                logging.warning("PSF {} missing course, skipping it".format(psf_obj))
+            if grade_obj is None:
                 continue
 
-            elif psf_obj.metadata["course"] not in courses:
-                logging.warning(
-                    "PSF {} specifies unknown course {}, skipping it".format(
-                        psf_obj, psf_obj.metadata["course"]
-                    )
-                )
-                continue
-
-            else:
-                course_obj = courses[psf_obj.metadata["course"]]
-
-            # setup the assignment so we can instantiate the grade
-            if "assignment" not in psf_obj.metadata:
-                logging.warning(
-                    "PSF {} missing assignment, skipping it".format(psf_obj)
-                )
-                continue
-
-            elif psf_obj.metadata["assignment"] not in course_obj.assignments:
-                logging.warning(
-                    "PSF {} specifies unknown assignment '{}' for course '{}', skipping it".format(
-                        psf_obj, psf_obj.metadata["assignment"], course_obj
-                    )
-                )
-                continue
-
-            # create the grade object
-            grade_obj = grade.Grade(
-                course_obj.assignments[psf_obj.metadata["assignment"]]
-            )
             grade_data = {"categories": {}}
             score_keys = [
                 "feedback",
@@ -266,3 +167,128 @@ def xsvimport_cli(argv=None):
 
             # note that we get loaded_from from load_collection
             psf_obj.save_to_archive(psf_obj.loaded_from)
+
+def match(psf_obj, record, keys):
+    """match
+
+    Check if a given PSF object matches the specified record, given a list of
+    metadata keys to compare along.
+
+    :param psf_obj:
+    :param record:
+    :param keys:
+    """
+
+    # we will match this PSF unless invalidate is tripped
+    invalidate = False
+    for key in keys:
+
+        # check that it has the key
+        if key not in psf_obj.metadata:
+            logging.warning("PSF {} missing key {}, ignoring".format(key))
+            invalidate = True
+
+        #  check if they key matches
+        elif psf_obj.metadata[key] != record[key]:
+            invalidate = True
+
+    return not invalidate
+
+def create_grade(psf_obj, courses, baserev = "submission"):
+    """create_grade
+
+    Instantiate a Grade object for the PSF in a new canonical grade revision.
+
+    Return the object, or None if there is insufficient data to create it, 
+    as well as the revision in which it was created, as a tuple in that order.
+
+    :param psf_obj:
+    :param courses:
+    :param baserev:
+    """
+
+    course_obj = None
+    rev = None
+
+    # setup the revision
+    if psf_obj.is_graded():
+        rev = psf_obj.create_grade_revision()
+    else:
+        rev = psf_obj.create_revision("graded_0", baserev)
+
+    # setup the course so we can instantiate the grade
+    if "course" not in psf_obj.metadata:
+        logging.warning("PSF {} missing course, skipping it".format(psf_obj))
+        return None
+
+    elif psf_obj.metadata["course"] not in courses:
+        logging.warning(
+            "PSF {} specifies unknown course {}, skipping it".format(
+                psf_obj, psf_obj.metadata["course"]
+            )
+        )
+        return None
+
+    else:
+        course_obj = courses[psf_obj.metadata["course"]]
+
+    # setup the assignment so we can instantiate the grade
+    if "assignment" not in psf_obj.metadata:
+        logging.warning(
+            "PSF {} missing assignment, skipping it".format(psf_obj)
+        )
+        return None
+
+    elif psf_obj.metadata["assignment"] not in course_obj.assignments:
+        logging.warning(
+            "PSF {} specifies unknown assignment '{}' for course '{}', skipping it".format(
+                psf_obj, psf_obj.metadata["assignment"], course_obj
+            )
+        )
+        return None
+
+    # create the grade object
+    grade_obj = grade.Grade(
+        course_obj.assignments[psf_obj.metadata["assignment"]]
+    )
+
+    return grade_obj, rev
+
+def read_xsv(fp, reader, schema=None):
+    """read_xsv
+
+    Read an XSV file using the given reader. If the schema is None, then it is
+    loaded from the first line of the file. Return (records, schema).
+
+    :param fp: file to read from
+    :param reader:
+    :param schema:
+    """
+    xsv_data = []
+    schema = None
+    if schema is not None:
+        schema = schema.split(",")
+
+
+    for row in reader:
+        if schema is None:
+            schema = row
+            continue
+
+        if len(row) != len(schema):
+            logging.error(
+                "Malformed file, row '{}' does not match schema '{}'".format(
+                    row, schema
+                )
+            )
+            sys.exit(1)
+
+        rec = {}
+        for tup in zip(row, schema):
+            rec[tup[1]] = tup[0]
+
+        xsv_data.append(rec)
+
+    fp.close()
+
+    return xsv_data, schema
