@@ -2,6 +2,8 @@
 
 # check that the version number in the manual matches that of the software
 
+printf "$0... "
+
 fail () {
 	echo "FAIL"
 	echo "test $0 failed: $@"
