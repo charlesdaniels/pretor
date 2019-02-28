@@ -42,3 +42,7 @@ jobs:
           python:
               - "3.7"
           script: "pip install black && ./scripts/run_linter.sh"
+        - stage: complexity
+          python:
+              - "3.7"
+          script: "pip install radon xenon && ./scripts/check_complexity.sh"
