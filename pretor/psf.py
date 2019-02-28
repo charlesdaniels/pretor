@@ -34,16 +34,6 @@ def psf_cli(argv=None):
             (Pretor Submission File) archives"""
     )
 
-    parser.add_argument("--version", action="version", version=constants.version)
-
-    parser.add_argument(
-        "--debug",
-        "-d",
-        action="store_true",
-        default=False,
-        help="Log debugging output to the console.",
-    )
-
     parser.add_argument(
         "--destination",
         "-D",
@@ -277,164 +267,31 @@ def psf_cli(argv=None):
         "--modifymetadata", default=None, nargs=2, help=argparse.SUPPRESS
     )
 
-    args = None
-    if argv is not None:
-        args = parser.parse_args(argv)
-    else:
-        args = parser.parse_args()
-
-    if args.debug:
-        util.setup_logging(logging.DEBUG)
-    else:
-        util.setup_logging()
+    args = util.handle_args(parser, argv)
 
     if args.create:
         logging.info("creating PSF... ")
-
-        # prepare to load pretor.toml
-        pretor_path = pathlib.Path(args.source, "pretor.toml")
-        if pretor_path.exists():
-            pretor_path = pretor_path.resolve()
-        pretor_data = {}
-        excludelist = []
-        valid_assignments = []
-        logging.debug("looking for pretor.toml at {}".format(pretor_path))
-
-        # load the pretor.toml if possible
-        if pretor_path.exists():
-            try:
-                pretor_data, excludelist, valid_assignments = load_pretor_toml(
-                    pretor_path
-                )
-
-            except exceptions.VersionError as e:
-                # handle version checking
-                util.log_exception(e)
-                if not args.disable_versioncheck:
-                    logging.error(
-                        "Installed pretor version is too old to "
-                        + "load {}.".format(pretor_path)
-                    )
-                    sys.exit(1)
-
-                else:
-                    logging.warning("Ignoring version mismatch per argument")
-
-            logging.debug("loaded pretor.toml: {}".format(pretor_data))
-
-        elif args.allow_no_toml:
-            logging.warning("generating PSF without pretor.toml")
-
-        elif not pretor_path.exists():
-            logging.error(
-                "'{}' does not exist, refusing to generate PSF".format(pretor_path)
+        try:
+            create_psf(
+                args.source,
+                args.course,
+                args.section,
+                args.semester,
+                args.assignment,
+                args.group,
+                args.revid,
+                args.name,
+                args.destination,
+                args.force,
+                args.allow_no_toml,
+                args.no_meta_check,
+                args.disable_version_check,
             )
+            sys.exit(0)
+        except Exception as e:
+            util.log_exception(e)
+            logging.error("PSF creation failed")
             sys.exit(1)
-        else:
-            logging.warning("packing PSF without pretor.toml")
-
-        arg_metadata = {
-            "course": args.course,
-            "section": args.section,
-            "semester": args.semester,
-            "assignment": args.assignment,
-            "group": args.group,
-        }
-
-        # strip None items
-        arg_metadata = {k: v for k, v in arg_metadata.items() if v is not None}
-
-        # pull over anything specified as an argument
-        metadata = {**pretor_data, **arg_metadata}
-
-        # check all required metadata is present
-        if not args.no_meta_check:
-            for key in ["course", "semester", "assignment", "section"]:
-                missing = False
-                if key not in metadata:
-                    logging.error("{} was not specified".format(key))
-                    missing = True
-
-                if missing:
-                    sys.exit(1)
-
-            if (len(valid_assignments) > 0) and (
-                metadata["assignment"] not in valid_assignments
-            ):
-                logging.error(
-                    "Invalid assignment name '{}'".format(metadata["assignment"])
-                    + " valid choices are: {}".format(str(valid_assignments))
-                )
-                sys.exit(1)
-
-        logging.info("reading data from {}".format(args.source))
-        psf = PSF()
-        psf.load_from_dir(args.source, args.revid, excludelist)
-
-        # flag use of --no_meta_check
-        if args.no_meta_check:
-            psf.metadata["no_meta_check"] = True
-            psf.forensic["no_meta_check"] = True
-
-        # flag use of --allow_no_toml
-        if args.allow_no_toml:
-            psf.metadata["allow_no_toml"] = True
-            psf.forensic["allow_no_toml"] = True
-
-        # flag use of disable_version_check
-        if args.disable_version_check:
-            psf.metadata["disable_version_check"] = True
-            psf.forensic["disable_version_check"] = True
-
-        logging.info("generating metadata... ")
-        psf.metadata = {
-            **psf.metadata,
-            **metadata,
-            **{
-                "timestamp": str(datetime.datetime.now()),
-                "pretor_version": constants.version,
-            },
-        }
-
-        psf.forensic["hostname"] = str(socket.gethostname())
-        psf.forensic["timestamp"] = str(datetime.datetime.now())
-        psf.forensic["user"] = str(getpass.getuser())
-        psf.forensic["source_dir"] = str(args.source)
-        psf.forensic["pretor_version"] = str(constants.version)
-
-        # write output file
-        if args.name is None:
-            for key in ["course", "semester", "assignment", "section", "group"]:
-                if key not in psf.metadata:
-                    logging.error("insufficient data to generate output name")
-                    sys.exit(1)
-
-            args.name = "{}-{}-{}-{}-{}.psf".format(
-                psf.metadata["semester"],
-                psf.metadata["course"],
-                psf.metadata["section"],
-                psf.metadata["group"],
-                psf.metadata["assignment"],
-            )
-
-        if args.destination is None:
-            args.destination = "../"
-
-        output_path = pathlib.Path(args.destination) / args.name
-        if output_path.exists():
-            output_path = output_path.resolve()
-
-        logging.info("writing output... ")
-        if not output_path.exists() or args.force:
-            psf.save_to_archive(output_path)
-        else:
-            logging.error(
-                "output file '{}' exists, refusing to overwrite".format(output_path)
-            )
-            sys.exit(1)
-        logging.info("PSF written to '{}'".format(output_path))
-
-        sys.exit(0)
 
     if args.input is None:
         logging.error("No input file specified.")
@@ -561,6 +418,164 @@ def psf_cli(argv=None):
         psf.forensic["modifymetadata"].append([key, old, new])
 
         psf.save_to_archive(args.input)
+
+
+def create_psf(
+    source,
+    course=None,
+    section=None,
+    semester=None,
+    assignment=None,
+    group=None,
+    revid="submission",
+    name=None,
+    destination=None,
+    force=False,
+    allow_no_toml=False,
+    no_meta_check=False,
+    disable_version_check=False,
+):
+
+    # prepare to load pretor.toml
+    pretor_path = pathlib.Path(source, "pretor.toml")
+    if pretor_path.exists():
+        pretor_path = pretor_path.resolve()
+    pretor_data = {}
+    excludelist = []
+    valid_assignments = []
+    logging.debug("looking for pretor.toml at {}".format(pretor_path))
+
+    # load the pretor.toml if possible
+    if pretor_path.exists():
+        try:
+            pretor_data, excludelist, valid_assignments = load_pretor_toml(pretor_path)
+
+        except exceptions.VersionError as e:
+            # handle version checking
+            util.log_exception(e)
+            if not disable_version_check:
+                logging.error(
+                    "Installed pretor version is too old to "
+                    + "load {}.".format(pretor_path)
+                )
+                sys.exit(1)
+
+            else:
+                logging.warning("Ignoring version mismatch per argument")
+
+        logging.debug("loaded pretor.toml: {}".format(pretor_data))
+
+    elif allow_no_toml:
+        logging.warning("generating PSF without pretor.toml")
+
+    elif not pretor_path.exists():
+        logging.error(
+            "'{}' does not exist, refusing to generate PSF".format(pretor_path)
+        )
+        sys.exit(1)
+    else:
+        logging.warning("packing PSF without pretor.toml")
+
+    arg_metadata = {
+        "course": course,
+        "section": section,
+        "semester": semester,
+        "assignment": assignment,
+        "group": group,
+    }
+
+    # strip None items
+    arg_metadata = {k: v for k, v in arg_metadata.items() if v is not None}
+
+    # pull over anything specified as an argument
+    metadata = {**pretor_data, **arg_metadata}
+
+    # check all required metadata is present
+    if not no_meta_check:
+        for key in ["course", "semester", "assignment", "section"]:
+            missing = False
+            if key not in metadata:
+                logging.error("{} was not specified".format(key))
+                missing = True
+
+            if missing:
+                raise exceptions.StateError("missing required metadata")
+
+        if (len(valid_assignments) > 0) and (
+            metadata["assignment"] not in valid_assignments
+        ):
+            raise exceptions.StateError(
+                "Invalid assignment name '{}'".format(metadata["assignment"])
+                + " valid choices are: {}".format(str(valid_assignments))
+            )
+
+    logging.info("reading data from {}".format(source))
+    psf = PSF()
+    psf.load_from_dir(source, revid, excludelist)
+
+    # flag use of --no_meta_check
+    if no_meta_check:
+        psf.metadata["no_meta_check"] = True
+        psf.forensic["no_meta_check"] = True
+
+    # flag use of --allow_no_toml
+    if allow_no_toml:
+        psf.metadata["allow_no_toml"] = True
+        psf.forensic["allow_no_toml"] = True
+
+    # flag use of disable_version_check
+    if disable_version_check:
+        psf.metadata["disable_version_check"] = True
+        psf.forensic["disable_version_check"] = True
+
+    logging.info("generating metadata... ")
+    psf.metadata = {
+        **psf.metadata,
+        **metadata,
+        **{
+            "timestamp": str(datetime.datetime.now()),
+            "pretor_version": constants.version,
+        },
+    }
+
+    psf.forensic["hostname"] = str(socket.gethostname())
+    psf.forensic["timestamp"] = str(datetime.datetime.now())
+    psf.forensic["user"] = str(getpass.getuser())
+    psf.forensic["source_dir"] = str(source)
+    psf.forensic["pretor_version"] = str(constants.version)
+
+    # write output file
+    if name is None:
+        for key in ["course", "semester", "assignment", "section", "group"]:
+            if key not in psf.metadata:
+                raise exceptions.StateError("insufficient data to generate output name")
+
+        name = "{}-{}-{}-{}-{}.psf".format(
+            psf.metadata["semester"],
+            psf.metadata["course"],
+            psf.metadata["section"],
+            psf.metadata["group"],
+            psf.metadata["assignment"],
+        )
+
+    if destination is None:
+        destination = "../"
+
+    output_path = pathlib.Path(destination) / name
+    if output_path.exists():
+        output_path = output_path.resolve()
+
+    logging.info("writing output... ")
+    if not output_path.exists() or force:
+        psf.save_to_archive(output_path)
+    else:
+        logging.error(
+            "output file '{}' exists, refusing to overwrite".format(output_path)
+        )
+        raise exceptions.StateError(
+            "file '{}' exists and will not be overwritten".format(output_path)
+        )
+    logging.info("PSF written to '{}'".format(output_path))
 
 
 def load_pretor_toml(source):

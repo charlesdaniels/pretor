@@ -9,6 +9,8 @@ import sys
 import traceback
 import zipfile
 
+from . import constants
+
 
 def setup_logging(level=logging.INFO):
     logging.basicConfig(
@@ -50,3 +52,37 @@ def compare_versions(v1, v2):
             return False
 
     return True
+
+
+def handle_args(parser, argv):
+    """handle_args
+
+    Adds --debug and --version flags to parser, parses the args, and 
+    returns the parsed 'args' namespace. Also sets up logging.
+
+    :param parser:
+    :param argv:
+    """
+
+    parser.add_argument("--version", action="version", version=constants.version)
+
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        default=False,
+        help="Log debugging output to the console.",
+    )
+
+    args = None
+    if argv is not None:
+        args = parser.parse_args(argv)
+    else:
+        args = parser.parse_args()
+
+    if args.debug:
+        setup_logging(logging.DEBUG)
+    else:
+        setup_logging()
+
+    return args
