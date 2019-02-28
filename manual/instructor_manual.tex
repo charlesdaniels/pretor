@@ -1121,6 +1121,33 @@ assignment "Assignment 5" --input somefile.psf}, which would modify the
 them in the \texttt{modifymetadata} field of the forensic data. It is always
 possible to determine the original metadata of a PSF by viewing this field.}
 
+\section{Importing Existing Grade Data With \texttt{pretor-import}}
+
+It is sometimes convenient to maintain or create grade data separately from
+Pretor. However, even in such cases, it is often useful to use Pretor as an
+archival tool for storing grade data and submissions in a combined format.  To
+support this use case, Pretor includes a tool for folding CSV or TSV formatted
+grading information into a collection of PSFs.
+
+\texttt{pretor-import} is an intelligent tool -- the input data need only
+specify enough information about a given grade record to uniquely identify a
+single PSF in the collection of those being considered. In some cases, such as
+a collection of PSFs for a specific course, section, semester, and assignment,
+only the group would be sufficient to associate grade records with PSFs.
+
+The schema of the input data must be specified, either as a header row in the
+CSV/TSV, or as a parameter. The schema may specify any field that would
+normally be contained in a \texttt{pretor.toml} (used to associate records with
+PSFs), any field that would normally be used to specify a grade modifier (such
+as override, bonus, or penalty), or any category (only if the category name is
+not also a valid metadata field name or a valid grade modifier field name) A
+full list of relevant keys is provided in the output of \texttt{pretor-import
+-{}-help}.
+
+Note that \texttt{pretor-import} will only match records to PSFs if all columns
+specified in the schema are present in the PSF, and that all such columns have
+identical values to that of the corresponding PSF (i.e. fuzzy matching is not
+supported).
 
 \chapter{The Pretor Submission File (PSF) Format} %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

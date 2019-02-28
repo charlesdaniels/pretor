@@ -81,6 +81,41 @@ modifying pretor course definitions."""
         sys.exit(1)
 
 
+def load_courses(pathlist, glob="**/*.toml"):
+    """load_courses
+
+    Load course definitions from a list of files or directories
+
+    :param pathlist:
+    """
+
+    # load all courses in the coursepath
+    courses = {}
+    for p in pathlist:
+        p = pathlib.Path(p)
+        if p.is_file():
+            logging.debug("loading course from file {}".format(p))
+            try:
+                c = load_course_definition(p)
+                courses[c.name] = c
+                logging.debug("loaded course successfully")
+            except Exception as e:
+                util.log_exception(e)
+                logging.warning("failed to load course from '{}'".format(p))
+        else:
+            for fp in p.glob(glob):
+                logging.debug("loading course from file {}".format(fp))
+                try:
+                    c = load_course_definition(fp)
+                    courses[c.name] = c
+                    logging.debug("loaded course successfully")
+                except Exception as e:
+                    util.log_exception(e)
+                    logging.warning("failed to load course from '{}'".format(fp))
+
+    return courses
+
+
 def load_course_definition(origin):
     """load_course_definition
 

@@ -609,6 +609,43 @@ def load_pretor_toml(source):
     return metadata, exclude, valid
 
 
+def load_collection(pathlist, glob="**/*.psf"):
+    """load_collection
+
+    Load many PSFs from a list of paths. Each element in the list may be either
+    the path to a specific PSF, or a directory to be searched using the
+    glob pattern.
+
+    Each PSF will be annotated with a loaded_from attribute containing the
+    path from which it was loaded.
+
+    :param pathlist: list of paths to load
+   :param glob: override glob pattern
+    """
+
+    psfs = []
+    for path in pathlist:
+        path = pathlib.Path(path)
+
+        if not path.exists():
+            raise exceptions.MissingFile(path)
+
+        elif path.is_dir():
+            for child in path.glob(glob):
+                psf_obj = PSF()
+                psf_obj.load_from_archive(child)
+                psf_obj.loaded_from = path
+                psfs.append(psf_obj)
+
+        else:
+            psf_obj = PSF()
+            psf_obj.load_from_archive(path)
+            psf_obj.loaded_from = path
+            psfs.append(psf_obj)
+
+    return psfs
+
+
 class PSF:
     """PSF
 
@@ -1170,9 +1207,9 @@ class PSF:
 
         revs = []
         for revID in this.revisions:
-            rev = this.revisions[revID]
-            if rev.parentID == rev.ID:
-                revs.append(rev)
+            r = this.revisions[revID]
+            if r.parentID == rev.ID:
+                revs.append(r)
 
         return revs
 

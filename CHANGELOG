@@ -43,3 +43,8 @@
 * pretor.toml exclude list is honored while backing up from an interact session
 
 * Implemented pretor-psf --modifymetadata
+
+* Fixed a serious bug where the canonical grade revision would always be
+  detected as graded_0, regardless of the number of grade revisions.
+
+* Implemented pretor-import
