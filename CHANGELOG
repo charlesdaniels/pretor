@@ -30,3 +30,21 @@
 * Implemented --coursepath flag in pretor-psf, for use with --interact.
 
 * Implemented --lsrev action in pretor-psf.
+
+0.0.4:
+
+* Implemented pretor-query command
+
+* Fixed a bug where pretor-psf --interact could crash when interacting with
+  an existing revision.
+
+* Implemented pretor-psf --diff
+
+* pretor.toml exclude list is honored while backing up from an interact session
+
+* Implemented pretor-psf --modifymetadata
+
+* Fixed a serious bug where the canonical grade revision would always be
+  detected as graded_0, regardless of the number of grade revisions.
+
+* Implemented pretor-import

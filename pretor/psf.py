@@ -4,6 +4,7 @@
 import argparse
 import copy
 import datetime
+import difflib
 import getpass
 import io
 import logging
@@ -262,6 +263,20 @@ def psf_cli(argv=None):
         help="List all revisions in the PSF",
     )
 
+    action.add_argument(
+        "--diff",
+        default=None,
+        nargs=2,
+        help="Generate a unified diff format diff of each file in "
+        + "the two specified revisions.",
+    )
+
+    # Deliberately undocumented option - modify a metadata key for a PSF
+    # in-place. First arg is key, second is value
+    action.add_argument(
+        "--modifymetadata", default=None, nargs=2, help=argparse.SUPPRESS
+    )
+
     args = None
     if argv is not None:
         args = parser.parse_args(argv)
@@ -493,7 +508,7 @@ def psf_cli(argv=None):
             else:
                 rev = psf.create_revision(args.interact[1], args.interact[0])
 
-        elif args.interact in this.revisions:
+        elif args.interact in psf.revisions:
             rev = psf.get_revision(args.interact)
 
         else:
@@ -528,6 +543,24 @@ def psf_cli(argv=None):
     elif args.lsrev:
         for k in psf.revisions:
             print(k)
+
+    elif args.diff is not None:
+        try:
+            print(psf.diff(args.diff[0], args.diff[1]))
+        except Exception as e:
+            util.log_exception(e)
+
+    elif args.modifymetadata is not None:
+        key, new = args.modifymetadata
+        logging.info("Set metadata key '{}' to '{}' for {}".format(key, new, psf))
+        old = psf.metadata[key]
+        psf.metadata[key] = new
+
+        if "modifymetadata" not in psf.forensic:
+            psf.forensic["modifymetadata"] = []
+        psf.forensic["modifymetadata"].append([key, old, new])
+
+        psf.save_to_archive(args.input)
 
 
 def load_pretor_toml(source):
@@ -574,6 +607,43 @@ def load_pretor_toml(source):
             )
 
     return metadata, exclude, valid
+
+
+def load_collection(pathlist, glob="**/*.psf"):
+    """load_collection
+
+    Load many PSFs from a list of paths. Each element in the list may be either
+    the path to a specific PSF, or a directory to be searched using the
+    glob pattern.
+
+    Each PSF will be annotated with a loaded_from attribute containing the
+    path from which it was loaded.
+
+    :param pathlist: list of paths to load
+   :param glob: override glob pattern
+    """
+
+    psfs = []
+    for path in pathlist:
+        path = pathlib.Path(path)
+
+        if not path.exists():
+            raise exceptions.MissingFile(path)
+
+        elif path.is_dir():
+            for child in path.glob(glob):
+                psf_obj = PSF()
+                psf_obj.load_from_archive(child)
+                psf_obj.loaded_from = path
+                psfs.append(psf_obj)
+
+        else:
+            psf_obj = PSF()
+            psf_obj.load_from_archive(path)
+            psf_obj.loaded_from = path
+            psfs.append(psf_obj)
+
+    return psfs
 
 
 class PSF:
@@ -1137,9 +1207,9 @@ class PSF:
 
         revs = []
         for revID in this.revisions:
-            rev = this.revisions[revID]
-            if rev.parentID == rev.ID:
-                revs.append(rev)
+            r = this.revisions[revID]
+            if r.parentID == rev.ID:
+                revs.append(r)
 
         return revs
 
@@ -1252,7 +1322,55 @@ class PSF:
         if grade_obj is not None:
             grade_obj.load_file(workdir / "grade.toml")
 
-        this.load_from_dir(workdir / "contents", revID)
+        pretor_toml = workdir / "contents" / "pretor.toml"
+        excludelist = []
+        if pretor_toml.exists():
+            metadata, excludelist, valid = load_pretor_toml(pretor_toml)
+
+        this.load_from_dir(workdir / "contents", revID, excludelist)
+
+    def diff(this, revIDA, revIDB):
+        """diff
+
+        Generate a unified diff format string of all files in each of revA,
+        revB.
+
+        :param revIDA: revision ID A
+        :param revIDB: revision ID B
+        """
+
+        revA = this.get_revision(revIDA)
+        revB = this.get_revision(revIDB)
+
+        logging.debug("diffing '{}' revisions {} and {}".format(this, revA, revB))
+
+        s = ""
+
+        for path in set(list(revA.contents.keys()) + list(revB.contents.keys())):
+            logging.debug("    diffing '{}'".format(path))
+
+            strA = ""
+            if path in revA.contents:
+                strA = revA.contents[path].get_data().decode("utf8")
+            contentsA = list([str(x) + "\n" for x in strA.split("\n")])
+
+            strB = ""
+            if path in revB.contents:
+                strB = revB.contents[path].get_data().decode("utf8")
+            contentsB = list([str(x) + "\n" for x in strB.split("\n")])
+
+            s += str(
+                "".join(
+                    difflib.unified_diff(
+                        contentsA,
+                        contentsB,
+                        fromfile=revIDA + "/" + path,
+                        tofile=revIDB + "/" + path,
+                    )
+                )
+            )
+
+        return s
 
 
 class Revision:

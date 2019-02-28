@@ -156,6 +156,8 @@ TARGET may be either a directory, which will be searched recursively for PSF
 files, or it may be a single PSF file.
         """
 
+        # TODO: should look into using psf.load_collection()
+
         if not this.check_arg(1):
             return
 
