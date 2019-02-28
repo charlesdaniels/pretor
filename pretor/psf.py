@@ -368,15 +368,9 @@ def psf_cli(argv=None):
 
     elif args.modifymetadata is not None:
         key, new = args.modifymetadata
-        logging.info("Set metadata key '{}' to '{}' for {}".format(key, new, psf))
-        old = psf.metadata[key]
-        psf.metadata[key] = new
-
-        if "modifymetadata" not in psf.forensic:
-            psf.forensic["modifymetadata"] = []
-        psf.forensic["modifymetadata"].append([key, old, new])
 
         psf.save_to_archive(args.input)
+
 
 def create_psf(
     source,
@@ -749,7 +743,9 @@ class PSF:
             if this.is_graded():
                 rev = this.create_grade_revision()
             else:
-                raise exceptions.StateError("PSF is not graded yet, did you mean parentrev:@grade ?")
+                raise exceptions.StateError(
+                    "PSF is not graded yet, did you mean parentrev:@grade ?"
+                )
 
         elif ":" in revID:
             revID = revID.split(":")
@@ -762,9 +758,31 @@ class PSF:
             rev = this.get_revision(revID)
 
         else:
-            raise exceptions.StateError("PSF {} contains no revision {}, refusing to create revision without a parent".format(this, revID))
+            raise exceptions.StateError(
+                "PSF {} contains no revision {}, refusing to create revision without a parent".format(
+                    this, revID
+                )
+            )
 
         return rev
+
+    def update_metadata(this, key, val):
+        """update_metadata
+
+        Update a metadata value, recording the change in the forensic data.
+
+        :param this:
+        :param key:
+        :param val:
+        """
+
+        logging.info("Set metadata key '{}' to '{}' for {}".format(key, val, this))
+        old = this.metadata[key]
+        psf.metadata[key] = val
+
+        if "modifymetadata" not in this.forensic:
+            this.forensic["modifymetadata"] = []
+        this.forensic["modifymetadata"].append([key, old, val])
 
     def load_from_dir(this, path: pathlib.Path, revID, excludelist=[]):
         """load_from_dir
