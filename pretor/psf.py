@@ -348,50 +348,9 @@ def psf_cli(argv=None):
     elif args.interact is not None:
         rev = None
 
-        if args.interact == "@grade":
-            if psf.is_graded():
-                rev = psf.create_grade_revision()
-            else:
-                logging.error(
-                    "No grade revision. Try using "
-                    + "'parent_revision:@grade' instead."
-                )
-                sys.exit(1)
+        rev = psf.resolve_revision(args.interact)
 
-        elif ":" in args.interact:
-            args.interact = args.interact.split(":")
-            if args.interact[1] == "@grade":
-                rev = psf.create_revision("graded_0", args.interact[0])
-            else:
-                rev = psf.create_revision(args.interact[1], args.interact[0])
-
-        elif args.interact in psf.revisions:
-            rev = psf.get_revision(args.interact)
-
-        else:
-            rev = psf.create_revision(args.interact)
-
-        courses = {}
-        if args.coursepath is not None:
-            for p in args.coursepath.split(":"):
-                p = pathlib.Path(p)
-                if p.is_file():
-                    try:
-                        c = course.load_course_definition(p)
-                        courses[c.name] = c
-                    except Exception as e:
-                        util.log_exception(e)
-                        logging.warning("failed to load course from '{}'".format(p))
-                else:
-                    for fp in p.glob("**/*.toml"):
-                        try:
-                            c = course.load_course_definition(fp)
-                            courses[c.name] = c
-                        except Exception as e:
-                            util.log_exception(e)
-                            logging.warning(
-                                "failed to load course from '{}'".format(fp)
-                            )
+        courses = course.load_courses(args.coursepath.split(":"))
 
         psf.interact(rev.ID, courses=courses)
         logging.info("updating '{}' in place".format(args.input))
@@ -419,7 +378,6 @@ def psf_cli(argv=None):
 
         psf.save_to_archive(args.input)
 
-
 def create_psf(
     source,
     course=None,
@@ -435,6 +393,29 @@ def create_psf(
     no_meta_check=False,
     disable_version_check=False,
 ):
+    """create_psf
+
+    Create a new PSF from a directory on disk. This is the function that the
+    pretor-psf command uses when calling --create. This is a bit more
+    sophisticated than load_from_directory, in that it provides checks for
+    important metadata, sets up forensic data, and so on.
+
+    Note that all parameters except for source are optional.
+
+    :param source: directory to create the PSF from (where pretor.toml lives)
+    :param course: course name (may also be specified by pretor.toml)
+    :param section: section name (may also be specified by pretor.toml)
+    :param semester: semester name (may also be specified by pretor.toml)
+    :param assignment: assignment name (may also be specified by pretor.toml)
+    :param group: group name (may als obe specified by pretor.toml)
+    :param revid: revision identifier to create, usually 'submission'
+    :param name: file name for the PSF
+    :param destination: destination directory in which to place the PSF
+    :param force: bypass check for overwriting output file
+    :param allow_no_toml: bypass check for pretor.toml
+    :param no_meta_check: bypass check for metadata
+    :param disable_version_check: bypass check for minimum pretor-psf version
+    """
 
     # prepare to load pretor.toml
     pretor_path = pathlib.Path(source, "pretor.toml")
@@ -735,6 +716,55 @@ class PSF:
                 s += "\t\t{}\n".format(rev.contents[path])
 
         return s
+
+    def resolve_revision(this, revID):
+        """resolve_revision
+
+        This is used for resolving revision IDs provided by the user in handy
+        ways. This function always returns a revision object, not a revision
+        ID. In some cases, it may create a new revision. There are a couple of
+        cases here:
+
+        * If revID is @grade, and the PSF has been graded, then a new grade
+        revision is created with create_grade_revision() and returned, this is
+        used to revise an existing grade.
+
+        * If revID is @grade, and the PSF has not been graded, then we throw a
+        StateError.
+
+        * If revID does not contain a ':', then that revision is returned if it
+        exists, and a StateError is thrown otherwise.
+
+        * If revID contains a ':', then the left component is used as the
+        parent revision, and the right component is created and returned with
+        the left component as a parent.  If the right component is '@grade',
+        then an appropriate name is selected for it to be the first grade
+        revision in the PSF.
+
+        :param revID:
+        """
+
+        rev = None
+        if revID == "@grade":
+            if this.is_graded():
+                rev = this.create_grade_revision()
+            else:
+                raise exceptions.StateError("PSF is not graded yet, did you mean parentrev:@grade ?")
+
+        elif ":" in revID:
+            revID = revID.split(":")
+            if revID[1] == "@grade":
+                rev = this.create_revision("graded_0", revID[0])
+            else:
+                rev = this.create_revision(revID[1], revID[0])
+
+        elif revID in this.revisions:
+            rev = this.get_revision(revID)
+
+        else:
+            raise exceptions.StateError("PSF {} contains no revision {}, refusing to create revision without a parent".format(this, revID))
+
+        return rev
 
     def load_from_dir(this, path: pathlib.Path, revID, excludelist=[]):
         """load_from_dir
