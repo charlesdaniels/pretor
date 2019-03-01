@@ -51,4 +51,4 @@
 
 0.0.5:
 
-
+* Fixed a bug in pretor-query where forensic_* fields would always be empty.

@@ -199,37 +199,37 @@ CREATE TABLE psf(
                 disable_version_check = thepsf.metadata["disable_version_check"]
 
             forensic_no_meta_check = None
-            if "forensic_no_meta_check" in thepsf.forensic:
+            if "no_meta_check" in thepsf.forensic:
                 forensic_no_meta_check = thepsf.forensic["no_meta_check"]
 
             forensic_allow_no_toml = None
-            if "forensic_allow_no_toml" in thepsf.forensic:
+            if "allow_no_toml" in thepsf.forensic:
                 forensic_allow_no_toml = thepsf.forensic["allow_no_toml"]
 
             forensic_disable_version_check = None
-            if "forensic_disable_version_check" in thepsf.forensic:
+            if "isable_version_check" in thepsf.forensic:
                 forensic_disable_version_check = thepsf.forensic[
                     "disable_version_check"
                 ]
 
             forensic_hostname = None
-            if "forensic_hostname" in thepsf.forensic:
+            if "ostname" in thepsf.forensic:
                 forensic_hostname = thepsf.forensic["hostname"]
 
             forensic_user = None
-            if "forensic_user" in thepsf.forensic:
+            if "user" in thepsf.forensic:
                 forensic_user = thepsf.forensic["user"]
 
             forensic_timestamp = None
-            if "forensic_timestamp" in thepsf.forensic:
+            if "timestamp" in thepsf.forensic:
                 forensic_timestamp = thepsf.forensic["timestamp"]
 
             forensic_source_dir = None
-            if "forensic_source_dir" in thepsf.forensic:
+            if "source_dir" in thepsf.forensic:
                 forensic_source_dir = thepsf.forensic["source_dir"]
 
             forensic_pretor_version = None
-            if "forensic_pretor_version" in thepsf.forensic:
+            if "pretor_version" in thepsf.forensic:
                 forensic_pretor_version = thepsf.forensic["pretor_version"]
 
             grade = None
