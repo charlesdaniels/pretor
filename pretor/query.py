@@ -213,7 +213,7 @@ CREATE TABLE psf(
                 ]
 
             forensic_hostname = None
-            if "ostname" in thepsf.forensic:
+            if "hostname" in thepsf.forensic:
                 forensic_hostname = thepsf.forensic["hostname"]
 
             forensic_user = None
