@@ -55,3 +55,8 @@
 
 * Fixed a bug in pretor-query where the database would be written to a file
   on disk named "memory", rather than stored in memory
+
+* Switched from 'toml' to 'tomlkit'. This is expected to fix a class of rare
+  bug on some versions of the toml library that have been observed in the
+  wild where certain fields would not be recognized as valid by the toml
+  parser and prevent PSFs from being loaded.

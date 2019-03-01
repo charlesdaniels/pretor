@@ -70,6 +70,7 @@ if ! pretor-psf --input "$dest" --scorecard | grep 'OVERALL SCORE: 10.00%' > /de
 	fail "pretor-import did not update score"
 fi
 
+
 rm -rf "$TMP"
 echo "PASS"
 exit 0

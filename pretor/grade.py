@@ -6,7 +6,7 @@ import logging
 import os
 import pathlib
 import sys
-import toml
+import tomlkit as toml
 import argparse
 import tabulate
 
@@ -392,7 +392,8 @@ class Grade:
 
         path = pathlib.Path(path)
 
-        grade_data = toml.load(path)
+        with open(str(path), "r") as f:
+            grade_data = toml.loads(f.read())
 
         this.load_data(grade_data, path)
 

@@ -45,6 +45,6 @@ setup(name="pretor",
            ]},
       package_dir={'pretor': 'pretor'},
       platforms=['POSIX'],
-      install_requires=['toml', 'tabulate']
+      install_requires=['tomlkit', 'tabulate']
       )
 

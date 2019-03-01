@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tabulate
 import tempfile
-import toml
+import tomlkit as toml
 import uuid
 import zipfile
 import zlib
@@ -297,8 +297,10 @@ def psf_cli(argv=None):
         logging.error("No input file specified.")
         sys.exit(1)
 
+    logging.debug("loading PSF... ")
     psf = PSF()
     try:
+        logging.debug("loading PSF specified by argument: {}".format(args.input))
         psf.load_from_archive(args.input)
     except Exception as e:
         util.log_exception(e)
@@ -576,7 +578,8 @@ def load_pretor_toml(source):
     elif type(source) is dict:
         data = source
     else:
-        data = toml.load(str(source))
+        with open(str(source), "r") as f:
+            data = toml.loads(f.read())
 
     for key in ["course", "section", "semester", "assignment"]:
         if key in data:
@@ -871,6 +874,7 @@ class PSF:
         """
 
         # load forensic data from PSF
+        logging.debug("loading forensic data... ")
         try:
             this.forensic = toml.loads(zlib.decompress(arc.comment).decode("utf-8"))
         except Exception as e:
@@ -880,6 +884,7 @@ class PSF:
             )
 
         # load the pretor data file for the PSF
+        logging.debug("loading pretor_data.toml... ")
         try:
             arc.getinfo("pretor_data.toml")
         except KeyError:
@@ -1044,7 +1049,10 @@ class PSF:
         # initialize revision object and install into revisions
         rev = Revision(this, revID)
         if "parentID" in rev_data:
-            rev.parentID = rev_data["parentID"]
+            if rev_data["parentID"] == "":
+                rev.parentID = None
+            else:
+                rev.parentID = rev_data["parentID"]
         this.revisions[revID] = rev
 
         logging.debug("generated revision object: {}".format(rev))
@@ -1138,6 +1146,8 @@ class PSF:
         rev_data = {}
         rev_data["ID"] = revID
         rev_data["parentID"] = rev.parentID
+        if rev_data["parentID"] is None:
+            rev_data["parentID"] = ""
         rev_data["contents"] = list(rev.contents.keys())
         f.writestr(
             "revisions/{}/rev_data.toml".format(revID),

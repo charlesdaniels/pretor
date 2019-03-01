@@ -6,7 +6,8 @@ import logging
 import pathlib
 import sys
 import tabulate
-import toml
+import tomlkit as toml
+from tomlkit.toml_document import TOMLDocument
 
 from . import constants
 from . import exceptions
@@ -143,10 +144,11 @@ def load_course_definition(origin):
     """
 
     course_data = origin
-    if type(origin) is not dict:
+    if (type(origin) is not dict) and (type(origin) is not TOMLDocument):
         path = pathlib.Path(origin)
         logging.debug("loading course definition from '{}'...".format(path))
-        course_data = toml.load(path)
+        with open(str(path), "r") as f:
+            course_data = dict(toml.loads(f.read()))
 
     # validate course definition
     if "course" not in course_data:
@@ -169,7 +171,7 @@ def load_course_definition(origin):
 
     # load each individual assignment
     for as_key in [k for k in course_data.keys() if k != "course"]:
-        as_data = course_data[as_key]
+        as_data = dict(course_data[as_key])
 
         for key in ["name", "weight"]:
             if key not in as_data:
@@ -197,6 +199,12 @@ def load_course_definition(origin):
             as_data.pop("description")
         as_data.pop("name")
         as_data.pop("weight")
+
+        for key in ["name", "weight", "description"]:
+            if key in as_data:
+                logging.error(
+                    "You should never see this, if you do, you have found a bug in Pretor. Please send a bug report, and be sure to include the message 'course:205'"
+                )
 
         # validate that all the category marks are valid
         for cat_name in as_data:

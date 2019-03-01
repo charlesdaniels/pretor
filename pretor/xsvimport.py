@@ -166,7 +166,9 @@ def xsvimport_cli(argv=None):
             rev.grade = grade_obj
 
             # note that we get loaded_from from load_collection
+            logging.debug("writing archive to {}".format(psf_obj.loaded_from))
             psf_obj.save_to_archive(psf_obj.loaded_from)
+            logging.debug("wrote archive to {}".format(psf_obj.loaded_from))
 
 
 def match(psf_obj, record, keys):
@@ -221,7 +223,7 @@ def create_grade(psf_obj, courses, baserev="submission"):
     # setup the course so we can instantiate the grade
     if "course" not in psf_obj.metadata:
         logging.warning("PSF {} missing course, skipping it".format(psf_obj))
-        return None
+        return (None, None)
 
     elif psf_obj.metadata["course"] not in courses:
         logging.warning(
@@ -229,7 +231,7 @@ def create_grade(psf_obj, courses, baserev="submission"):
                 psf_obj, psf_obj.metadata["course"]
             )
         )
-        return None
+        return (None, None)
 
     else:
         course_obj = courses[psf_obj.metadata["course"]]

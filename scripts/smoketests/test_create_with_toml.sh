@@ -24,7 +24,7 @@ echo 'semester = "C"' >> submission/pretor.toml
 echo 'assignment = "D"' >> submission/pretor.toml
 echo 'minimum_version = "0.0.1"' >> submission/pretor.toml
 
-pretor-psf --create \
+pretor-psf --debug --create \
 	--source ./submission \
 	--destination ./ \
 	--group "E" > "$TMP/err" 2> "$TMP/out"
