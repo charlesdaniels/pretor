@@ -168,6 +168,7 @@ def xsvimport_cli(argv=None):
             # note that we get loaded_from from load_collection
             psf_obj.save_to_archive(psf_obj.loaded_from)
 
+
 def match(psf_obj, record, keys):
     """match
 
@@ -194,7 +195,8 @@ def match(psf_obj, record, keys):
 
     return not invalidate
 
-def create_grade(psf_obj, courses, baserev = "submission"):
+
+def create_grade(psf_obj, courses, baserev="submission"):
     """create_grade
 
     Instantiate a Grade object for the PSF in a new canonical grade revision.
@@ -234,9 +236,7 @@ def create_grade(psf_obj, courses, baserev = "submission"):
 
     # setup the assignment so we can instantiate the grade
     if "assignment" not in psf_obj.metadata:
-        logging.warning(
-            "PSF {} missing assignment, skipping it".format(psf_obj)
-        )
+        logging.warning("PSF {} missing assignment, skipping it".format(psf_obj))
         return None
 
     elif psf_obj.metadata["assignment"] not in course_obj.assignments:
@@ -248,11 +248,10 @@ def create_grade(psf_obj, courses, baserev = "submission"):
         return None
 
     # create the grade object
-    grade_obj = grade.Grade(
-        course_obj.assignments[psf_obj.metadata["assignment"]]
-    )
+    grade_obj = grade.Grade(course_obj.assignments[psf_obj.metadata["assignment"]])
 
     return grade_obj, rev
+
 
 def read_xsv(fp, reader, schema=None):
     """read_xsv
@@ -268,7 +267,6 @@ def read_xsv(fp, reader, schema=None):
     schema = None
     if schema is not None:
         schema = schema.split(",")
-
 
     for row in reader:
         if schema is None:
