@@ -910,7 +910,7 @@ class PSF:
         if "metadata" in pretor_data:
             this.metadata = pretor_data["metadata"]
 
-        this.metadata["archive_name"] = archive_path
+        this.metadata["archive_name"] = str(archive_path)
 
         for revID in pretor_data["revisions"]:
             this.load_revision_from_archive_rev0(arc, revID)
