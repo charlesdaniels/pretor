@@ -368,7 +368,7 @@ def psf_cli(argv=None):
 
     elif args.modifymetadata is not None:
         key, new = args.modifymetadata
-
+        psf.update_metadata(key, new)
         psf.save_to_archive(args.input)
 
 
@@ -777,8 +777,10 @@ class PSF:
         """
 
         logging.info("Set metadata key '{}' to '{}' for {}".format(key, val, this))
-        old = this.metadata[key]
-        psf.metadata[key] = val
+        old = ""
+        if key in this.metadata:
+            old = this.metadata[key]
+        this.metadata[key] = val
 
         if "modifymetadata" not in this.forensic:
             this.forensic["modifymetadata"] = []
