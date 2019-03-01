@@ -27,15 +27,15 @@ jobs:
           python:
             - "3.7"
         - stage: smoketest_pyinstaller
-          script: "pip  install pyinstaller && pyinstaller --onefile ./pyinstaller/pretor-psf.py && sh -c 'PATH=$(pwd)/dist/:$PATH ./scripts/run_smoketests.sh'"
+          script: "pip install pyinstaller tomlkit && pyinstaller --onefile ./pyinstaller/pretor-psf.py && sh -c 'PATH=$(pwd)/dist/:$PATH ./scripts/run_smoketests.sh'"
           python:
             - "3.7"
         - stage: smoketest_pyinstaller
-          script: "pip  install pyinstaller && pyinstaller --onefile ./pyinstaller/pretor-psf.py && sh -c 'PATH=$(pwd)/dist/:$PATH ./scripts/run_smoketests.sh'"
+          script: "pip install pyinstaller tomlkit && pyinstaller --onefile ./pyinstaller/pretor-psf.py && sh -c 'PATH=$(pwd)/dist/:$PATH ./scripts/run_smoketests.sh'"
           python:
             - "3.6"
         - stage: smoketest_pyinstaller
-          script: "pip  install pyinstaller && pyinstaller --onefile ./pyinstaller/pretor-psf.py && sh -c 'PATH=$(pwd)/dist/:$PATH ./scripts/run_smoketests.sh'"
+          script: "pip install pyinstaller tomlkit && pyinstaller --onefile ./pyinstaller/pretor-psf.py && sh -c 'PATH=$(pwd)/dist/:$PATH ./scripts/run_smoketests.sh'"
           python:
             - "3.5"
         - stage: lint
