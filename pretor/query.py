@@ -126,7 +126,7 @@ def build_database(glob):
     :param glob:
     """
 
-    db = sqlite3.connect("memory")
+    db = sqlite3.connect(":memory:")
 
     schema = """
 CREATE TABLE psf(

@@ -58,6 +58,10 @@ if ! grep 'A2' < $TMP/result > /dev/null 2>&1 ; then
 	fail "missing result"
 fi
 
+if [ -e "memory" ] ; then fail "database written to disk, not in memory" ; fi
+
+if [ -e ":memory:" ] ; then fail "database written to disk, not in memory" ; fi
+
 rm -rf "$TMP"
 echo "PASS"
 exit 0
