@@ -170,7 +170,7 @@ def xsvimport_cli(argv=None):
             rev.grade = grade_obj
 
             # note that we get loaded_from from load_collection
-            logging.debug("writing archive to {}".format(psf_obj.loaded_from))
+            logging.info("updating archive {}".format(psf_obj.loaded_from))
             psf_obj.save_to_archive(psf_obj.loaded_from)
             logging.debug("wrote archive to {}".format(psf_obj.loaded_from))
 
