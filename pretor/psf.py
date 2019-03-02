@@ -631,7 +631,7 @@ def load_collection(pathlist, glob="**/*.psf"):
                 for child in path.glob(glob):
                     psf_obj = PSF()
                     psf_obj.load_from_archive(child)
-                    psf_obj.loaded_from = path
+                    psf_obj.loaded_from = child
                     psfs.append(psf_obj)
 
             else:
