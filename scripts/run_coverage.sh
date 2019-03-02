@@ -24,5 +24,5 @@ if ! coverage run --source pretor -m unittest discover ; then
 	exit 1
 else
 	echo "tests OK" 1>&2
-	coverage report -m --fail-under 30
+	coverage report -m --fail-under 31
 fi

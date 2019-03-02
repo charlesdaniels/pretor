@@ -118,6 +118,14 @@ def load_courses(pathlist, glob="**/*.toml"):
 
 
 def load_assignment(as_key, course_data, course):
+    """load_assignment
+
+    Load a specified assignment from already loaded course data.
+
+    :param as_key: the assignment name
+    :param course_data: the course data
+    :param course: the course object
+    """
 
     as_data = dict(course_data[as_key])
 
@@ -125,9 +133,9 @@ def load_assignment(as_key, course_data, course):
         if key not in as_data:
             raise exceptions.InvalidFile(
                 (
-                    "course file '{}' malformed"
-                    + "'{}' malformed assignment with key '{}'"
-                ).format(path, as_key)
+                    "course data malformed contains"
+                    + "assignment with key '{}'"
+                ).format(as_key)
             )
 
     # weights are percentages
@@ -163,9 +171,9 @@ def load_assignment(as_key, course_data, course):
 
             raise exceptions.InvalidFile(
                 (
-                    "course file '{}' malformed"
+                    "course data malformed "
                     + "assignment '{}' category '{}' invalid marks: {}"
-                ).format(path, as_data["name"], cat_name, as_Dta[cat_name])
+                ).format(name, cat_name, as_data[cat_name])
             )
 
     # XXX: this double linking might confuse the garbage collector, should
