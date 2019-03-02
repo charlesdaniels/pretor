@@ -14,7 +14,7 @@
 
 \tableofcontents
 
-\chapter{Introduction}
+\chapter{Introduction}  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{What is Pretor?}
 
@@ -147,7 +147,7 @@ a typical Pretor grading workflow looks like this:
 
 \end{enumerate}
 
-\chapter{Grading With Pretor}
+\chapter{Grading With Pretor}  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Grading Basics} \label{sec:grading_basics}
 
@@ -746,6 +746,24 @@ category.
 \pretoremph{\textbf{Best Practice}: is to store all of your course definition
 files in a single directory, so you can easily reference them via
 \texttt{pretor-grade}.}
+
+\subsection{Course Definition File Schema}
+
+\begin{verbatim}
+[course]
+name = "Your course name here (i.e. CS101)"
+description = "Optional course description"
+
+[arbitrary string other than 'course']
+name = "Assignment name (i.e. 'Project 2')"
+description = "Optional description here"
+weight = 0.0  # not used, slated for deprecation
+ruberic_category_1 = 10  # specify number of marks for ruberic category 1
+ruberic_category_2 = 20
+# ...
+ruberic_category_n = 5
+\end{verbatim}
+
 
 \subsection{A Sample Course Definition File}
 
