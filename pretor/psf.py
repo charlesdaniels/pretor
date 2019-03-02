@@ -930,6 +930,91 @@ class PSF:
         for revID in pretor_data["revisions"]:
             this.load_revision_from_archive_rev0(arc, revID)
 
+    def load_rev_data_rev0(this, arc, revID):
+        """load_rev_data_rev0
+
+        Load the rev_data for a specified revID, for PSF revision level 0.
+
+        :param arc:
+        :param revID:
+        """
+        rev_data = None
+        try:
+            rev_data = arc.getinfo("revisions/{}/rev_data.toml".format(revID))
+            rev_data = arc.read(rev_data)
+            rev_data = toml.loads(rev_data.decode("utf-8"))
+            logging.debug("loaded revision data successfully")
+        except KeyError:
+            raise PSFInvalid(
+                "Invalid archive {}, pretor_data.toml specifies nonexistant revID {}".format(
+                    archive_path, revID
+                )
+            )
+        except Exception as e:
+            util.log_exception(e)
+            raise PSFInvalid(
+                "Invalid archive {}, could not load rev_data.toml for revID {}".format(
+                    archive_path, revID
+                )
+            )
+
+        return rev_data
+
+    def load_grade_data_rev0(this, arc, revID, course_obj, archive_path):
+        """load_grade_data_rev0
+
+        Load grade data for a specified revision, from PSF revision level 0.
+
+        :param this:
+        :param arc:
+        :param revID:
+        :param course_obj:
+        """
+
+        grade_data = None
+        try:
+            grade_data = arc.getinfo("revisions/{}/grade.toml".format(revID))
+            grade_data = arc.read(grade_data)
+            grade_data = toml.loads(grade_data.decode("utf-8"))
+            logging.debug("loaded grade data successfully")
+
+        except Exception as e:
+            util.log_exception(e)
+            raise PSFInvalid(
+                "Invalid archive {}, invalid grade.toml for revID {}".format(
+                    archive_path, revID
+                )
+            )
+
+        # validate that we will be able to correctly de-serialize the
+        # course and grade data
+        try:
+            if (grade_data is not None) and (course_obj is not None):
+                assert "assignment_name" in grade_data
+                assert grade_data["assignment_name"] in course_obj.assignments
+            elif (grade_data is not None) or (course_obj is not None):
+                raise PSFInvalid(
+                    "Invalid archive {}, specified a course or a grade, but not both".format(
+                        archive_path
+                    )
+                )
+        except Exception as e:
+            raise PSFInvalid(
+                "Invalid archive {}, mangled course/grade data for revID {}".format(
+                    archive_path, revID
+                )
+            )
+
+        grade_obj = None
+        if grade_data is not None:
+            grade_obj = grade.Grade(
+                course_obj.assignments[grade_data["assignment_name"]]
+            )
+            grade_obj.load_data(grade_data)
+            logging.debug("generated grade object: {}".format(grade_obj))
+
+        return grade_obj
+
     def load_revision_from_archive_rev0(this, arc: zipfile.ZipFile, revID: str):
         """load_revision_from_archive_rev0
 
@@ -955,62 +1040,21 @@ class PSF:
                 )
             )
 
-        rev_data = None
-
         # load the revision data from the archive
-        try:
-            rev_data = arc.getinfo("revisions/{}/rev_data.toml".format(revID))
-            rev_data = arc.read(rev_data)
-            rev_data = toml.loads(rev_data.decode("utf-8"))
-            logging.debug("loaded revision data successfully")
-        except KeyError:
-            raise PSFInvalid(
-                "Invalid archive {}, pretor_data.toml specifies nonexistant revID {}".format(
-                    archive_path, revID
-                )
-            )
-        except Exception as e:
-            util.log_exception(e)
-            raise PSFInvalid(
-                "Invalid archive {}, could not load rev_data.toml for revID {}".format(
-                    archive_path, revID
-                )
-            )
+        rev_data = this.load_rev_data_rev0(arc, revID)
 
         # load grade data from archive
-        grade_data = None
         course_data = None
-        try:
-            grade_data = arc.getinfo("revisions/{}/grade.toml".format(revID))
-            grade_data = arc.read(grade_data)
-            grade_data = toml.loads(grade_data.decode("utf-8"))
-            logging.debug("loaded grade data successfully")
-        except KeyError as e:
-            # no grade specified
-            logging.debug("no grade.toml: {}".format(e))
-            pass
-        except Exception as e:
-            util.log_exception(e)
-            raise PSFInvalid(
-                "Invalid archive {}, invalid grade.toml for revID {}".format(
-                    archive_path, revID
-                )
-            )
 
         try:
             course_data = arc.getinfo("revisions/{}/course.toml".format(revID))
             course_data = arc.read(course_data)
             course_data = toml.loads(course_data.decode("utf-8"))
             logging.debug("loaded course data successfully")
+
         except KeyError:
-            # no grade specified
-            logging.debug("no course data specified")
-            if grade_data is not None:
-                raise PSFInvalid(
-                    "Invalid archive {}, grade specified without course for revID {}".format(
-                        archive_path, revID
-                    )
-                )
+            logging.debug("course is not specified")
+
         except Exception as e:
             util.log_exception(e)
             raise PSFInvalid(
@@ -1023,27 +1067,9 @@ class PSF:
         if course_data is not None:
             course_obj = course.load_course_definition(course_data)
 
-        # validate that we will be able to correctly de-serialize the
-        # course and grade data
-        try:
-            if grade_data is not None:
-                assert course_data is not None
-                assert "assignment_name" in grade_data
-                assert grade_data["assignment_name"] in course_data
-        except Exception as e:
-            raise PSFInvalid(
-                "Invalid archive {}, mangled course/grade data for revID {}".format(
-                    archive_path, revID
-                )
-            )
-
         grade_obj = None
-        if grade_data is not None:
-            grade_obj = grade.Grade(
-                course_obj.assignments[grade_data["assignment_name"]]
-            )
-            grade_obj.load_data(grade_data)
-            logging.debug("generated grade object: {}".format(grade_obj))
+        if course_obj is not None:
+            grade_obj = this.load_grade_data_rev0(arc, revID, course_obj, archive_path)
 
         # validate the revision data
         for key in ["ID", "contents"]:

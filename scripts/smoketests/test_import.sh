@@ -24,6 +24,7 @@ mkdir submission
 echo "this is a test string!" > submission/file.txt
 
 pretor-psf --create \
+	--debug \
 	--source ./submission \
 	--destination ./ \
 	--course "A" \

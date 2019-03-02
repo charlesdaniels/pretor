@@ -9,6 +9,10 @@ TMP="$(mktemp -d)"
 fail () {
 	echo "FAIL"
 	echo "test $0 failed: $@"
+	echo "------ stderr -----"
+	cat "$TMP/err"
+	echo "------ stdout -----"
+	cat "$TMP/out"
 	rm -rf "$TMP"
 	exit 1
 }
@@ -21,6 +25,7 @@ mkdir submission
 echo "this is a test string!" > submission/file.txt
 
 pretor-psf --create \
+	--debug \
 	--source ./submission \
 	--destination ./ \
 	--course "A" \
@@ -63,6 +68,7 @@ echo 'weight=0.1' >> "$TMP/coursedef.toml"
 echo 'foo=10' >> "$TMP/coursedef.toml"
 
 pretor-import \
+	--debug \
 	--coursepath "$TMP/coursedef.toml" \
 	--input "$TMP/data.csv" \
 	"$dest" >> "$TMP/out" 2>> "$TMP/err"
@@ -83,6 +89,7 @@ fi
 
 echo "C,D,B,A,E,0.3" >> "$TMP/data.csv"
 pretor-import \
+	--debug \
 	--coursepath "$TMP/coursedef.toml" \
 	--input "$TMP/data.csv" \
 	"$dest" >> "$TMP/out" 2>> "$TMP/err"
