@@ -8,6 +8,10 @@ TMP="$(mktemp -d)"
 fail () {
 	echo "FAIL"
 	echo "test $0 failed: $@"
+	echo "------ stderr -----"
+	cat "$TMP/err"
+	echo "------ stdout -----"
+	cat "$TMP/out"
 	rm -rf "$TMP"
 	exit 1
 }
@@ -36,7 +40,7 @@ dest="$TMP/C-A-B-E-D.psf"
 
 if [ -f "$dest" ] ; then fail "pretor-psf generated '$dest and should not have'" ; fi
 
-if [ "$RES" -eq "0" ] ; then fail "pretor-psf exited 0 and should have" ; fi
+if [ "$RES" -eq "0" ] ; then fail "pretor-psf exited 0 and should not have" ; fi
 
 rm -rf "$TMP"
 echo "PASS"

@@ -60,3 +60,9 @@
   bug on some versions of the toml library that have been observed in the
   wild where certain fields would not be recognized as valid by the toml
   parser and prevent PSFs from being loaded.
+
+* Paths ending in '~' are no longer flagged as malicious, as this convention is
+  often used for temporary or swap files.
+
+* pretor-import no longer crashes if any PSF is invalid (invalid PSFs are
+  skipped)

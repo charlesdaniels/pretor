@@ -8,6 +8,10 @@ TMP="$(mktemp -d)"
 fail () {
 	echo "FAIL"
 	echo "test $0 failed: $@"
+	echo "------ stderr -----"
+	cat "$TMP/err"
+	echo "------ stdout -----"
+	cat "$TMP/out"
 	rm -rf "$TMP"
 	exit 1
 }

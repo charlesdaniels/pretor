@@ -100,8 +100,10 @@ def xsvimport_cli(argv=None):
     logging.info("loaded {} records from input".format(len(xsv_data)))
 
     logging.debug("loading PSFs... ")
-    psf_collection = psf.load_collection(args.PSFs)
-    logging.info("loaded {} PSFs".format(len(psf_collection)))
+    psf_collection, failed = psf.load_collection(args.PSFs)
+    logging.info(
+        "loaded {} PSFs, {} failed to load".format(len(psf_collection), failed)
+    )
 
     metadata_keys = ["semester", "course", "section", "group", "assignment"]
     schema_keys = [k for k in metadata_keys if k in schema]

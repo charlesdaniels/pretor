@@ -612,31 +612,39 @@ def load_collection(pathlist, glob="**/*.psf"):
     Each PSF will be annotated with a loaded_from attribute containing the
     path from which it was loaded.
 
+    returns psf_list,num_failed
+
     :param pathlist: list of paths to load
-   :param glob: override glob pattern
+    :param glob: override glob pattern
     """
 
     psfs = []
+    skipped = 0
     for path in pathlist:
         path = pathlib.Path(path)
 
-        if not path.exists():
-            raise exceptions.MissingFile(path)
+        try:
+            if not path.exists():
+                raise exceptions.MissingFile(path)
 
-        elif path.is_dir():
-            for child in path.glob(glob):
+            elif path.is_dir():
+                for child in path.glob(glob):
+                    psf_obj = PSF()
+                    psf_obj.load_from_archive(child)
+                    psf_obj.loaded_from = path
+                    psfs.append(psf_obj)
+
+            else:
                 psf_obj = PSF()
-                psf_obj.load_from_archive(child)
+                psf_obj.load_from_archive(path)
                 psf_obj.loaded_from = path
                 psfs.append(psf_obj)
+        except Exception as e:
+            skipped += 1
+            util.log_exception(e)
+            logging.warning("Skipping PSF '{}' due to exception: {}".format(path, e))
 
-        else:
-            psf_obj = PSF()
-            psf_obj.load_from_archive(path)
-            psf_obj.loaded_from = path
-            psfs.append(psf_obj)
-
-    return psfs
+    return psfs, skipped
 
 
 class PSF:
@@ -940,7 +948,7 @@ class PSF:
 
         logging.debug("processing revision {}".format(revID))
 
-        if ".." in revID or "~" in revID:
+        if ".." in revID or "~" in revID[:-1]:
             raise PSFInvalid(
                 "Archive {} contains maliciously constructed revID {}".format(
                     archive_path, revID
