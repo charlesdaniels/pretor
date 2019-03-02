@@ -166,101 +166,42 @@ CREATE TABLE psf(
                 logging.warning("could not load '{}', skipping".format(path))
                 util.log_exception(e)
 
-            course = None
-            if "course" in thepsf.metadata:
-                course = thepsf.metadata["course"]
+            # keep in mind that this is all order sensitive
+            vals = [thepsf.ID, str(path.name), str(path)]
 
-            assignment = None
-            if "assignment" in thepsf.metadata:
-                assignment = thepsf.metadata["assignment"]
+            for key in ["course", "semester", "section", "group", "assignment"]:
+                if key in thepsf.metadata:
+                    vals.append(thepsf.metadata[key])
+                else:
+                    vals.append(None)
 
-            group = None
-            if "group" in thepsf.metadata:
-                group = thepsf.metadata["group"]
+            vals.append(thepsf.is_graded())
 
-            semester = None
-            if "semester" in thepsf.metadata:
-                semester = thepsf.metadata["semester"]
-
-            section = None
-            if "section" in thepsf.metadata:
-                section = thepsf.metadata["section"]
-
-            no_meta_check = None
-            if "no_meta_check" in thepsf.metadata:
-                no_meta_check = thepsf.metadata["no_meta_check"]
-
-            allow_no_toml = None
-            if "allow_no_toml" in thepsf.metadata:
-                allow_no_toml = thepsf.metadata["allow_no_toml"]
-
-            disable_version_check = None
-            if "disable_version_check" in thepsf.metadata:
-                disable_version_check = thepsf.metadata["disable_version_check"]
-
-            forensic_no_meta_check = None
-            if "no_meta_check" in thepsf.forensic:
-                forensic_no_meta_check = thepsf.forensic["no_meta_check"]
-
-            forensic_allow_no_toml = None
-            if "allow_no_toml" in thepsf.forensic:
-                forensic_allow_no_toml = thepsf.forensic["allow_no_toml"]
-
-            forensic_disable_version_check = None
-            if "isable_version_check" in thepsf.forensic:
-                forensic_disable_version_check = thepsf.forensic[
-                    "disable_version_check"
-                ]
-
-            forensic_hostname = None
-            if "hostname" in thepsf.forensic:
-                forensic_hostname = thepsf.forensic["hostname"]
-
-            forensic_user = None
-            if "user" in thepsf.forensic:
-                forensic_user = thepsf.forensic["user"]
-
-            forensic_timestamp = None
-            if "timestamp" in thepsf.forensic:
-                forensic_timestamp = thepsf.forensic["timestamp"]
-
-            forensic_source_dir = None
-            if "source_dir" in thepsf.forensic:
-                forensic_source_dir = thepsf.forensic["source_dir"]
-
-            forensic_pretor_version = None
-            if "pretor_version" in thepsf.forensic:
-                forensic_pretor_version = thepsf.forensic["pretor_version"]
-
-            grade = None
             if thepsf.is_graded():
-                grade = thepsf.get_grade_rev().grade.get_score()
+                vals.append(thepsf.get_grade_rev().grade.get_score())
+            else:
+                vals.append(None)
 
-            vals = []
+            for key in ["no_meta_check", "allow_no_toml", "disable_version_check"]:
+                if key in thepsf.metadata:
+                    vals.append(thepsf.metadata[key])
+                else:
+                    vals.append(None)
 
-            vals.append(thepsf.ID)  # uuid TEXT,
-            vals.append(str(path.name))  # filename TEXT,
-            vals.append(str(path))  # path TEXT,
-            vals.append(course)  # course TEXT,
-            vals.append(semester)  # semester TEXT,
-            vals.append(section)  # section TEXT,
-            vals.append(group)  # group TEXT,
-            vals.append(assignment)  # assignment TEXT,
-            vals.append(thepsf.is_graded())  # graded BOOL,
-            vals.append(grade)  # grade FLOAT,
-            vals.append(no_meta_check)  # no_meta_check BOOL,
-            vals.append(allow_no_toml)  # allow_no_toml BOOL,
-            vals.append(disable_version_check)  # disable_version_check BOOL,
-            vals.append(forensic_no_meta_check)  # forensic_no_meta_check BOOL,
-            vals.append(forensic_allow_no_toml)  # forensic_allow_no_toml BOOL,
-            vals.append(
-                forensic_disable_version_check
-            )  # forensic_disable_version_check BOOL,
-            vals.append(forensic_hostname)  # forensic_hostname TEXT,
-            vals.append(forensic_timestamp)  # forensic_timestamp TEXT,
-            vals.append(forensic_user)  # forensic_user TEXT,
-            vals.append(forensic_source_dir)  # forensic_source_dir TEXT,
-            vals.append(forensic_pretor_version)  # forensic_pretor_version TEXT
+            for key in [
+                "no_meta_check",
+                "allow_no_toml",
+                "disable_version_check",
+                "hostname",
+                "timestamp",
+                "user",
+                "source_dir",
+                "pretor_version",
+            ]:
+                if key in thepsf.forensic:
+                    vals.append(thepsf.forensic[key])
+                else:
+                    vals.append(None)
 
             cursor.execute(
                 "INSERT INTO psf VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

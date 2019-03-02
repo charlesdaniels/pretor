@@ -110,8 +110,8 @@ def xsvimport_cli(argv=None):
     schema_keys = [k for k in metadata_keys if k in schema]
     if len(schema_keys) < 1:
         logging.error(
-            "schema must specify at least one of: semester, course, section, group, assignment" +
-            ", you provided: {}".format(schema)
+            "schema must specify at least one of: semester, course, section, group, assignment"
+            + ", you provided: {}".format(schema)
         )
         sys.exit(1)
 
