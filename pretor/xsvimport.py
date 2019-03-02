@@ -52,7 +52,7 @@ def xsvimport_cli(argv=None):
         + "comma-delimited list, which may contain any of the fields "
         + "course, section, semester, assignment, group, feedback, "
         + "bonus_multiplier, bonus_marks, bonus_score, penalty_multiplier, "
-        + "penalty_marks, penalty_score.",
+        + "penalty_marks, penalty_score, or override.",
     )
 
     parser.add_argument(
@@ -67,6 +67,7 @@ def xsvimport_cli(argv=None):
         "--tsv",
         "-t",
         default=False,
+        action="store_true",
         help="By default, the input is assumed to be CSV. By asserting "
         + "this flag, it may be parsed as TSV instead.",
     )
@@ -109,7 +110,8 @@ def xsvimport_cli(argv=None):
     schema_keys = [k for k in metadata_keys if k in schema]
     if len(schema_keys) < 1:
         logging.error(
-            "schema must specify at least one of: semester, course, section, group, assignment"
+            "schema must specify at least one of: semester, course, section, group, assignment" +
+            ", you provided: {}".format(schema)
         )
         sys.exit(1)
 
@@ -268,7 +270,6 @@ def read_xsv(fp, reader, schema=None):
     :param schema:
     """
     xsv_data = []
-    schema = None
     if schema is not None:
         schema = schema.split(",")
 
