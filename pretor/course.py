@@ -117,6 +117,70 @@ def load_courses(pathlist, glob="**/*.toml"):
     return courses
 
 
+def load_assignment(as_key, course_data, course):
+
+    as_data = dict(course_data[as_key])
+
+    for key in ["name", "weight"]:
+        if key not in as_data:
+            raise exceptions.InvalidFile(
+                (
+                    "course file '{}' malformed"
+                    + "'{}' malformed assignment with key '{}'"
+                ).format(path, as_key)
+            )
+
+    # weights are percentages
+    weight = float(as_data["weight"])
+    if weight < 0 or weight > 1:
+        raise exceptions.InvalidFile(
+            (
+                "course file '{}' malformed" + "assignment '{}': invalid weight {}"
+            ).format(path, as_data["name"], as_data["weight"])
+        )
+
+    # pop out name and weight, leaving us just the categories
+    name = as_data["name"]
+    description = ""
+    if "description" in as_data:
+        description = as_data["description"]
+        as_data.pop("description")
+    as_data.pop("name")
+    as_data.pop("weight")
+
+    for key in ["name", "weight", "description"]:
+        if key in as_data:
+            logging.error(
+                "You should never see this, if you do, you have found a bug in Pretor. Please send a bug report, and be sure to include the message 'course:205'"
+            )
+
+    # validate that all the category marks are valid
+    for cat_name in as_data:
+        try:
+            as_data[cat_name] = int(as_data[cat_name])
+            assert as_data[cat_name] >= 0
+        except Exception as e:
+
+            raise exceptions.InvalidFile(
+                (
+                    "course file '{}' malformed"
+                    + "assignment '{}' category '{}' invalid marks: {}"
+                ).format(path, as_data["name"], cat_name, as_Dta[cat_name])
+            )
+
+    # XXX: this double linking might confuse the garbage collector, should
+    # investigate if there are any negative implications
+    assignment = Assignment(
+        course=course,
+        name=name,
+        weight=weight,
+        categories=as_data,
+        description=description,
+    )
+
+    return assignment
+
+
 def load_course_definition(origin):
     """load_course_definition
 
@@ -171,65 +235,8 @@ def load_course_definition(origin):
 
     # load each individual assignment
     for as_key in [k for k in course_data.keys() if k != "course"]:
-        as_data = dict(course_data[as_key])
-
-        for key in ["name", "weight"]:
-            if key not in as_data:
-                raise exceptions.InvalidFile(
-                    (
-                        "course file '{}' malformed"
-                        + "'{}' malformed assignment with key '{}'"
-                    ).format(path, as_key)
-                )
-
-        # weights are percentages
-        weight = float(as_data["weight"])
-        if weight < 0 or weight > 1:
-            raise exceptions.InvalidFile(
-                (
-                    "course file '{}' malformed" + "assignment '{}': invalid weight {}"
-                ).format(path, as_data["name"], as_data["weight"])
-            )
-
-        # pop out name and weight, leaving us just the categories
-        name = as_data["name"]
-        description = ""
-        if "description" in as_data:
-            description = as_data["description"]
-            as_data.pop("description")
-        as_data.pop("name")
-        as_data.pop("weight")
-
-        for key in ["name", "weight", "description"]:
-            if key in as_data:
-                logging.error(
-                    "You should never see this, if you do, you have found a bug in Pretor. Please send a bug report, and be sure to include the message 'course:205'"
-                )
-
-        # validate that all the category marks are valid
-        for cat_name in as_data:
-            try:
-                as_data[cat_name] = int(as_data[cat_name])
-                assert as_data[cat_name] >= 0
-            except Exception as e:
-
-                raise exceptions.InvalidFile(
-                    (
-                        "course file '{}' malformed"
-                        + "assignment '{}' category '{}' invalid marks: {}"
-                    ).format(path, as_data["name"], cat_name, as_Dta[cat_name])
-                )
-
-        # XXX: this double linking might confuse the garbage collector, should
-        # investigate if there are any negative implications
-        assignment = Assignment(
-            course=course,
-            name=name,
-            weight=weight,
-            categories=as_data,
-            description=description,
-        )
-        course.assignments[name] = assignment
+        assignment = load_assignment(as_key, course_data, course)
+        course.assignments[assignment.name] = assignment
 
     return course
 
