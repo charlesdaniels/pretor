@@ -374,6 +374,26 @@ def psf_cli(argv=None):
         psf.save_to_archive(args.input)
 
 
+def validate_metadata(metadata, valid_assignments, no_meta_check):
+    if not no_meta_check:
+        for key in ["course", "semester", "assignment", "section"]:
+            missing = False
+            if key not in metadata:
+                logging.error("{} was not specified".format(key))
+                missing = True
+
+            if missing:
+                raise exceptions.StateError("missing required metadata")
+
+        if (len(valid_assignments) > 0) and (
+            metadata["assignment"] not in valid_assignments
+        ):
+            raise exceptions.StateError(
+                "Invalid assignment name '{}'".format(metadata["assignment"])
+                + " valid choices are: {}".format(str(valid_assignments))
+            )
+
+
 def create_psf(
     source,
     course=None,
@@ -445,13 +465,11 @@ def create_psf(
     elif allow_no_toml:
         logging.warning("generating PSF without pretor.toml")
 
-    elif not pretor_path.exists():
+    else:
         logging.error(
             "'{}' does not exist, refusing to generate PSF".format(pretor_path)
         )
-        sys.exit(1)
-    else:
-        logging.warning("packing PSF without pretor.toml")
+        raise exceptions.StateError("no pretor.toml found in {}".format(source))
 
     arg_metadata = {
         "course": course,
@@ -468,23 +486,7 @@ def create_psf(
     metadata = {**pretor_data, **arg_metadata}
 
     # check all required metadata is present
-    if not no_meta_check:
-        for key in ["course", "semester", "assignment", "section"]:
-            missing = False
-            if key not in metadata:
-                logging.error("{} was not specified".format(key))
-                missing = True
-
-            if missing:
-                raise exceptions.StateError("missing required metadata")
-
-        if (len(valid_assignments) > 0) and (
-            metadata["assignment"] not in valid_assignments
-        ):
-            raise exceptions.StateError(
-                "Invalid assignment name '{}'".format(metadata["assignment"])
-                + " valid choices are: {}".format(str(valid_assignments))
-            )
+    validate_metadata(metadata, valid_assignments, no_meta_check)
 
     logging.info("reading data from {}".format(source))
     psf = PSF()
