@@ -132,10 +132,9 @@ def load_assignment(as_key, course_data, course):
     for key in ["name", "weight"]:
         if key not in as_data:
             raise exceptions.InvalidFile(
-                (
-                    "course data malformed contains"
-                    + "assignment with key '{}'"
-                ).format(as_key)
+                ("course data malformed contains" + "assignment with key '{}'").format(
+                    as_key
+                )
             )
 
     # weights are percentages
