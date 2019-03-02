@@ -327,25 +327,11 @@ def psf_cli(argv=None):
         print(psf.format_forensic())
 
     elif args.scorecard is not None:
-        if args.revid == "submission":
-            if psf.is_graded():
-                sys.stdout.write(psf.get_grade_rev().grade.generate_scorecard())
-            else:
-                logging.error("PSF has not been graded")
-                sys.exit(1)
-        else:
-            if args.revid in psf.revisions:
-                if psf.get_revision(args.revid).grade is not None:
-                    sys.stdout.write(
-                        psf.get_revision(args.revid).grade.generate_scorecard()
-                    )
-                else:
-                    logging.error("revision {} has no grade".format(args.revid))
-                    sys.exit(1)
-
-            else:
-                logging.error("no such revision {}".format(args.revid))
-                sys.exit(1)
+        try:
+            print(psf.get_scorecard(args.revid))
+        except Exception as e:
+            util.log_exception(e)
+            sys.exit(1)
 
     elif args.interact is not None:
         rev = None
@@ -721,6 +707,31 @@ class PSF:
             s += "\t{}\n".format(rev)
             for path in rev.contents:
                 s += "\t\t{}\n".format(rev.contents[path])
+
+        return s
+
+    def get_scorecard(this, revID):
+        s = ""
+        if revID == "submission":
+            if this.is_graded():
+                s += this.get_grade_rev().grade.generate_scorecard()
+            else:
+                raise exceptions.StateError(
+                    "cannot generate scorecard for un-graded PSF"
+                )
+        else:
+            if revID in this.revisions:
+                if this.get_revision(revID).grade is not None:
+                    s += psf.get_revision(args.revid).grade.generate_scorecard()
+                else:
+                    raise exceptions.StateError(
+                        "cannot generate scorecard for revision '{}' which is ungraded".format(
+                            revID
+                        )
+                    )
+
+            else:
+                raise PSFRevisionError("no such revision {}".format(revID))
 
         return s
 
