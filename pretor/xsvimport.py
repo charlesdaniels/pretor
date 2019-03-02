@@ -274,6 +274,7 @@ def read_xsv(fp, reader, schema=None):
         schema = schema.split(",")
 
     for row in reader:
+        row = [s.strip() for s in row]
         if schema is None:
             schema = row
             continue
