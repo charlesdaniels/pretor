@@ -7,6 +7,7 @@ python:
   - "pypy3.5"
 
 install:
+  - pip3 install tomlkit
   - python3 setup.py install
 
 script:
