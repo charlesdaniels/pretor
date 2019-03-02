@@ -1069,7 +1069,7 @@ class PSF:
 
         # load revision files from archive
         for path in rev_data["contents"]:
-            if ".." in path or "~" in path:
+            if ".." in path or "~" in path[:-1]:
                 raise PSFInvalid(
                     "Archive {} contains maliciously constructed path {}".format(
                         archive_path, path
