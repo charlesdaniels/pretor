@@ -66,3 +66,6 @@
 
 * pretor-import no longer crashes if any PSF is invalid (invalid PSFs are
   skipped)
+
+* Fix a bug where PSFs might fail to extract on pre-3.6 Python versions, caused
+  due to order sensitivity issues in revision manifests.

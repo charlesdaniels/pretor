@@ -1629,7 +1629,10 @@ class Revision:
             logging.debug("writing file {} to {}".format(fpath, target_path))
 
             if not target_path.parent.exists():
-                target_path.parent.mkdir()
+                logging.debug(
+                    "creating parent directory: {}".format(target_path.parent)
+                )
+                target_path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(target_path, "wb") as f:
                 # write to destination file
